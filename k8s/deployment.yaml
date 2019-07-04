@@ -31,7 +31,7 @@ spec:
       labels:
         app: evohome-hgi80-listener
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Always
       serviceAccount: evohome-hgi80-listener
       containers:
       - name: evohome-hgi80-listener

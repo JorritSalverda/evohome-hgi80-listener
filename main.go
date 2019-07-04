@@ -97,6 +97,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
 	}
+	defer f.Close()
 
 	for {
 		buf := make([]byte, 32)
