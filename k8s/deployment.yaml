@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: evohome-hgi80-listener
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: evohome-hgi80-listener
+  namespace: evohome-hgi80-listener
+  labels:
+    app: evohome-hgi80-listener
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evohome-hgi80-listener
+  namespace: evohome-hgi80-listener
+  labels:
+    app: evohome-hgi80-listener
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: evohome-hgi80-listener
+  template:
+    metadata:
+      labels:
+        app: evohome-hgi80-listener
+    spec:
+      restartPolicy: OnFailure
+      serviceAccount: evohome-hgi80-listener
+      containers:
+      - name: evohome-hgi80-listener
+        image: jsalverda/evohome-hgi80-listener:${CONTAINER_TAG}
+        env:
+        - name: "NAMESPACE"
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: "EVOHOME_ID"
+          valueFrom:
+            configMapKeyRef:
+              name: evohome-hgi80-listener-configs
+              key: config-id
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: configs
+          mountPath: /configs
+        - name: hgi
+          mountPath: /dev/ttyUSB0
+      terminationGracePeriodSeconds: 300
+      volumes:
+      - name: configs
+        configMap:
+          name: evohome-hgi80-listener-configs
+      - name: hgi
+        hostPath:
+          path: ${HGI_USB_PATH}

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: evohome-hgi80-listener
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evohome-hgi80-listener-configs
+  namespace: evohome-hgi80-listener
+  labels:
+    app: evohome-hgi80-listener
+data:
+  evohome-id: ${EVOHOME_ID}

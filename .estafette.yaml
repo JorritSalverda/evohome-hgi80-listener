@@ -1,0 +1,47 @@
+labels:
+  app-group: jarvis
+  team: jsalverda
+  language: golang
+
+version:
+  semver:
+    major: 0
+    minor: 1
+
+stages:
+  build:
+    image: golang:1.12.6-alpine3.10
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+      GOFLAGS: -mod=vendor
+    commands:
+    - go test -test.short ./... 
+    - go build -a -installsuffix cgo -ldflags "-X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
+
+  bake:
+    image: extensions/docker:stable
+    action: build
+    inline: |
+      FROM scratch
+
+      LABEL maintainer="JorritSalverda" \
+            description="The ${ESTAFETTE_GIT_NAME} component is an application to listend to the Honeywell Evohome HGI80 usb module for metrics from the Evohome system"
+
+      COPY ${ESTAFETTE_GIT_NAME} /
+      COPY ca-certificates.crt /etc/ssl/certs/
+      
+      ENV EVOHOME_ID=""
+
+      ENTRYPOINT ["/${ESTAFETTE_GIT_NAME}"]
+    repositories:
+    - jsalverda
+    path: ./publish
+    copy:
+    - /etc/ssl/certs/ca-certificates.crt
+
+  push-to-docker-hub:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - jsalverda
