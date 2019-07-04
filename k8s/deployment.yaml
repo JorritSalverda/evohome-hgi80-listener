@@ -45,7 +45,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: evohome-hgi80-listener-configs
-              key: config-id
+              key: evohome-id
         resources:
           requests:
             cpu: 100m
