@@ -105,6 +105,12 @@ func main() {
 		if err != nil {
 			if err != io.EOF {
 				log.Warn().Err(err).Msg("Error reading from serial port")
+			} else {
+				log.Info().Err(err).Msg("EOF, reopening serial port...")
+				f, err = serial.Open(options)
+				if err != nil {
+					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
+				}
 			}
 		} else {
 			buf = buf[:n]

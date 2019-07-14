@@ -17,5 +17,5 @@ curl https://raw.githubusercontent.com/JorritSalverda/evohome-hgi80-listener/mas
 And for deploying a new version or changing the schedule run
 
 ```bash
-curl https://raw.githubusercontent.com/JorritSalverda/evohome-hgi80-listener/master/k8s/deployment.yaml | HGI_USB_PATH="/dev/ttyUSB0" CONTAINER_TAG='0.1.3' envsubst \$HGI_USB_PATH,\$CONTAINER_TAG | kubectl apply -f -
+curl https://raw.githubusercontent.com/JorritSalverda/evohome-hgi80-listener/master/k8s/deployment.yaml | HGI_USB_PATH="/dev/ttyUSB0" CONTAINER_TAG='0.1.4' envsubst \$HGI_USB_PATH,\$CONTAINER_TAG | kubectl apply -f -
 ```
