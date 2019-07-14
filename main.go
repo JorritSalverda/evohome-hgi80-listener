@@ -105,13 +105,18 @@ func main() {
 		if err != nil {
 			if err != io.EOF {
 				log.Warn().Err(err).Msg("Error reading from serial port")
-			} else {
-				log.Info().Err(err).Msg("EOF, reopening serial port...")
-				f, err = serial.Open(options)
-				if err != nil {
-					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
-				}
 			}
+
+			log.Info().Err(err).Msg("Closing serial usb device...")
+			f.Close()
+
+			log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
+			f, err = serial.Open(options)
+			if err != nil {
+				log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
+			}
+			defer f.Close()
+
 		} else {
 			buf = buf[:n]
 			log.Debug().Msg(hex.EncodeToString(buf))
