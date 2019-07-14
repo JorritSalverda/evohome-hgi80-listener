@@ -8,6 +8,7 @@ import (
 	stdlog "log"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/jacobsa/go-serial/serial"
@@ -109,6 +110,8 @@ func main() {
 
 			log.Info().Err(err).Msg("Closing serial usb device...")
 			f.Close()
+
+			time.Sleep(5 * time.Second)
 
 			log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
 			f, err = serial.Open(options)
