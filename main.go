@@ -105,21 +105,19 @@ func main() {
 		n, err := f.Read(buf)
 		if err != nil {
 			if err != io.EOF {
-				log.Warn().Err(err).Msg("Error reading from serial port")
+				log.Warn().Err(err).Msg("Error reading from serial port, closing port...")
+				f.Close()
+
+				log.Info().Msg("Sleeping for 5 seconds...")
+				time.Sleep(5 * time.Second)
+
+				log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
+				f, err = serial.Open(options)
+				if err != nil {
+					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
+				}
+				defer f.Close()
 			}
-
-			log.Info().Err(err).Msg("Closing serial usb device...")
-			f.Close()
-
-			time.Sleep(5 * time.Second)
-
-			log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
-			f, err = serial.Open(options)
-			if err != nil {
-				log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
-			}
-			defer f.Close()
-
 		} else {
 			buf = buf[:n]
 			log.Debug().Msg(hex.EncodeToString(buf))
