@@ -8,6 +8,7 @@ import (
 	stdlog "log"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -26,7 +27,7 @@ var (
 	goVersion = runtime.Version()
 
 	// application specific config
-	stateFilePath = kingpin.Flag("state-file-path", "Path to session secret.").Default("/configs/state.json").OverrideDefaultFromEnvar("STATE_FILE_PATH").String()
+	stateFilePath = kingpin.Flag("state-file-path", "Path to file with state.").Default("/configs/state.json").OverrideDefaultFromEnvar("STATE_FILE_PATH").String()
 	hgiDevicePath = kingpin.Flag("hgi-device-path", "Path to usb device connecting HGI80.").Default("/dev/ttyUSB0").OverrideDefaultFromEnvar("HGI_DEVICE_PATH").String()
 	evohomeID     = kingpin.Flag("evohome-id", "ID of the Evohome Touch device").Envar("EVOHOME_ID").Required().String()
 	namespace     = kingpin.Flag("namespace", "Namespace the pod runs in.").Envar("NAMESPACE").Required().String()
@@ -120,7 +121,25 @@ func main() {
 			}
 		} else {
 			buf = buf[:n]
-			log.Debug().Msg(hex.EncodeToString(buf))
+
+			rawmsg := hex.EncodeToString(buf)
+
+			// self.source_id    = rawmsg[11:20]
+
+			// self.msg_type     = rawmsg[4:6].strip()
+			// self.source       = rawmsg[11:20]               # device 1 - This looks as if this is always the source; Note this is overwritten with name of device
+			// self.source_type  = rawmsg[11:13]               # the first 2 digits seem to be identifier for type of device
+
+			message := Message{
+				SourceID:    rawmsg[11:20],
+				MessageType: strings.Trim(rawmsg[4:6], " "),
+				Source:      rawmsg[11:20],
+				SourceType:  rawmsg[11:13],
+				CommandCode: rawmsg[41:45],
+				CommandName: commandsMap[rawmsg[41:45]],
+			}
+
+			log.Debug().Interface("msg", message).Msg(rawmsg)
 		}
 	}
 }
