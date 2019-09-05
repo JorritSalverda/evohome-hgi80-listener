@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -122,9 +123,15 @@ func main() {
 	}
 	defer f.Close()
 
+	in := bufio.NewReader(f)
+
 	for {
-		buf := make([]byte, 32)
-		n, err := f.Read(buf)
+
+		// buf := make([]byte, 128)
+		// n, err := f.Read(buf)
+
+		buf, err := in.ReadBytes('\n')
+
 		if err != nil {
 			if err != io.EOF {
 				log.Warn().Err(err).Msg("Error reading from serial port, closing port...")
@@ -141,7 +148,7 @@ func main() {
 				defer f.Close()
 			}
 		} else {
-			buf = buf[:n]
+			// buf = buf[:n]
 
 			//rawmsg := hex.EncodeToString(buf)
 			rawmsg := strings.TrimSpace(string(buf))
