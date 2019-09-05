@@ -166,7 +166,7 @@ func main() {
 				} else {
 					log.Debug().Int("len", length).Msg(rawmsg)
 				}
-			} else {
+			} else if rawmsg != "\u0011" {
 				log.Debug().Int("len", length).Msg(rawmsg)
 			}
 		}
