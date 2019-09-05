@@ -195,7 +195,7 @@ func main() {
 						CommandName: commandsMap[rawmsg[41:45]],
 					}
 					log.Info().Int("len", length).Msg(rawmsg)
-					log.Info().Interface("msg", message)
+					log.Info().Interface("msg", message).Msg("")
 				} else {
 					// log.Debug().Int("len", length).Msg(rawmsg)
 				}
