@@ -125,7 +125,7 @@ func main() {
 			rawmsg := hex.EncodeToString(buf)
 
 			length := len(rawmsg)
-			if length >= 2 {
+			if length > 2 {
 				if length >= 50 {
 					message := Message{
 						SourceID:    rawmsg[11:20],
