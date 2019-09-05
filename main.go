@@ -156,7 +156,7 @@ func main() {
 			length := len(rawmsg)
 
 			// Make sure no obvious errors in getting the data....
-			if length > 10 &&
+			if length > 40 &&
 				!strings.Contains(rawmsg, "_ENC") &&
 				!strings.Contains(rawmsg, "_BAD") &&
 				!strings.Contains(rawmsg, "BAD") &&
@@ -177,8 +177,8 @@ func main() {
 				// }
 
 				// check if it matches the pattern to be expected from evohome
-				// match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) ---`, rawmsg)
-				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6}`, rawmsg)
+				// match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
 				length := len(rawmsg)
 
 				// 045  I --- 01:160371 --:------ 01:160371 3150 002 FC04 | len:54 |
