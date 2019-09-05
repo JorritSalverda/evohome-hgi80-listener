@@ -166,6 +166,8 @@ func main() {
 				} else {
 					log.Debug().Int("len", length).Msg(rawmsg)
 				}
+			} else {
+				log.Debug().Int("len", length).Msg(rawmsg)
 			}
 		}
 	}
