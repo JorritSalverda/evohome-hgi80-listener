@@ -156,18 +156,18 @@ func main() {
 				!strings.Contains(rawmsg, "ERR") {
 
 				// Echos of commands sent by us come back without the --- prefix. Noticed on the fifo firmware that sometimes the request type prefix seems to be messed up. Workaround for this...
-				if !strings.HasPrefix(rawmsg, "---") {
-					if strings.HasPrefix(rawmsg, "W---") {
-						rawmsg = rawmsg[1:]
-					} else {
-						rawmsgparts := strings.Split(rawmsg, "")
-						if len(rawmsgparts[0]) < 2 {
-							rawmsg = "---  " + rawmsg
-						} else {
-							rawmsg = "--- " + rawmsg
-						}
-					}
-				}
+				// if !strings.HasPrefix(rawmsg, "---") {
+				// 	if strings.HasPrefix(rawmsg, "W---") {
+				// 		rawmsg = rawmsg[1:]
+				// 	} else {
+				// 		rawmsgparts := strings.Split(rawmsg, "")
+				// 		if len(rawmsgparts[0]) < 2 {
+				// 			rawmsg = "---  " + rawmsg
+				// 		} else {
+				// 			rawmsg = "--- " + rawmsg
+				// 		}
+				// 	}
+				// }
 
 				// check if it matches the pattern to be expected from evohome
 				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
