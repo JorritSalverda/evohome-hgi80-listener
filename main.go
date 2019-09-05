@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	stdlog "log"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -122,11 +123,36 @@ func main() {
 			buf = buf[:n]
 
 			//rawmsg := hex.EncodeToString(buf)
-			rawmsg := string(buf)
+			rawmsg := strings.TrimSpace(string(buf))
 
 			length := len(rawmsg)
-			if length > 2 {
-				if length >= 50 {
+
+			// Make sure no obvious errors in getting the data....
+			if length > 40 &&
+				!strings.Contains(rawmsg, "_ENC") &&
+				!strings.Contains(rawmsg, "_BAD") &&
+				!strings.Contains(rawmsg, "BAD") &&
+				!strings.Contains(rawmsg, "ERR") {
+
+				// Echos of commands sent by us come back without the --- prefix. Noticed on the fifo firmware that sometimes the request type prefix seems to be messed up. Workaround for this...
+				if !strings.HasPrefix(rawmsg, "---") {
+					if strings.HasPrefix(rawmsg, "W---") {
+						rawmsg = rawmsg[1:]
+					} else {
+						rawmsgparts := strings.Split(rawmsg, "")
+						if len(rawmsgparts[0]) < 2 {
+							rawmsg = "---  " + rawmsg
+						} else {
+							rawmsg = "--- " + rawmsg
+						}
+					}
+				}
+
+				// check if it matches the pattern to be expected from evohome
+				match, _ := regexp.MatchString(`^--- ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				length := len(rawmsg)
+
+				if match {
 					message := Message{
 						SourceID:       rawmsg[11:20],
 						MessageType:    strings.Trim(rawmsg[4:6], " "),
