@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	stdlog "log"
@@ -42,11 +43,27 @@ func main() {
 	zerolog.LevelFieldName = "severity"
 
 	// set some default fields added to all logs
-	log.Logger = zerolog.New(os.Stdout).With().
-		Timestamp().
-		Str("app", app).
-		Str("version", version).
-		Logger()
+	// log.Logger = zerolog.New(os.Stdout).With().
+	// 	Timestamp().
+	// 	Str("app", app).
+	// 	Str("version", version).
+	// 	Logger()
+
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	output.FormatLevel = func(i interface{}) string {
+		return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
+	}
+	output.FormatMessage = func(i interface{}) string {
+		return fmt.Sprintf("***%s****", i)
+	}
+	output.FormatFieldName = func(i interface{}) string {
+		return fmt.Sprintf("%s:", i)
+	}
+	output.FormatFieldValue = func(i interface{}) string {
+		return strings.ToUpper(fmt.Sprintf("%s", i))
+	}
+
+	log.Logger = zerolog.New(output).With().Timestamp().Logger()
 
 	// use zerolog for any logs sent via standard log library
 	stdlog.SetFlags(0)
