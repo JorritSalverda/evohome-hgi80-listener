@@ -50,6 +50,9 @@ func main() {
 	// 	Logger()
 
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	output.FormatTimestamp = func(i interface{}) string {
+		return ""
+	}
 	output.FormatLevel = func(i interface{}) string {
 		// return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
 		return ""
@@ -64,7 +67,7 @@ func main() {
 		return strings.ToUpper(fmt.Sprintf("%s", i))
 	}
 
-	log.Logger = zerolog.New(output).With().Logger()
+	log.Logger = zerolog.New(output).With().Timestamp().Logger()
 
 	// use zerolog for any logs sent via standard log library
 	stdlog.SetFlags(0)
