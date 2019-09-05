@@ -5,12 +5,13 @@ type State struct {
 }
 
 type Message struct {
-	SourceID    string
-	MessageType string
-	Source      string
-	SourceType  string
-	CommandCode string
-	CommandName string
+	SourceID       string
+	MessageType    string
+	Source         string
+	SourceType     string
+	SourceTypeName string
+	CommandCode    string
+	CommandName    string
 
 	// self.source_id    = rawmsg[11:20]
 
@@ -72,4 +73,14 @@ var commandsMap = map[string]string{
 	"3150": "zone_heat_demand",
 	"3b00": "actuator_check_req",
 	"3ef0": "actuator_state",
+}
+
+var deviceTypeMap = map[string]string{
+	"01": "CTL",
+	"02": "UFH",
+	"04": "TRV",
+	"07": "DHW",
+	"13": "BDR",
+	"30": "GWAY",
+	"34": "STAT",
 }

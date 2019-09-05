@@ -128,12 +128,13 @@ func main() {
 			if length > 2 {
 				if length >= 50 {
 					message := Message{
-						SourceID:    rawmsg[11:20],
-						MessageType: strings.Trim(rawmsg[4:6], " "),
-						Source:      rawmsg[11:20],
-						SourceType:  rawmsg[11:13],
-						CommandCode: rawmsg[41:45],
-						CommandName: commandsMap[rawmsg[41:45]],
+						SourceID:       rawmsg[11:20],
+						MessageType:    strings.Trim(rawmsg[4:6], " "),
+						Source:         rawmsg[11:20],
+						SourceType:     rawmsg[11:13],
+						SourceTypeName: deviceTypeMap[rawmsg[11:13]],
+						CommandCode:    rawmsg[41:45],
+						CommandName:    commandsMap[rawmsg[41:45]],
 					}
 					log.Info().Int("len", length).Interface("msg", message).Msg(rawmsg)
 				} else {
