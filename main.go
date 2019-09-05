@@ -65,7 +65,7 @@ func main() {
 		return fmt.Sprintf("| %s:", i)
 	}
 	output.FormatFieldValue = func(i interface{}) string {
-		return strings.ToUpper(fmt.Sprintf("%s", i))
+		return fmt.Sprintf("%s", i)
 	}
 
 	log.Logger = zerolog.New(output).With().Timestamp().Logger()
@@ -177,21 +177,25 @@ func main() {
 				// }
 
 				// check if it matches the pattern to be expected from evohome
-				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) ---`, rawmsg)
-				//match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				// match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) ---`, rawmsg)
+				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
 				length := len(rawmsg)
+
+				// 045  I --- 01:160371 --:------ 01:160371 3150 002 FC04 | len:54 |
+				// msg:{"COMMANDCODE":"3150","COMMANDNAME":"ZONE_HEAT_DEMAND","MESSAGETYPE":"I","PAYLOAD":"","SOURCE":"01:160371","SOURCEID":"01:160371","SOURCETYPE":"01","SOURCETYPENAME":"CTL"}
 
 				if match {
 					message := Message{
-						SourceID:       rawmsg[11:20],
-						MessageType:    strings.Trim(rawmsg[4:6], " "),
-						Source:         rawmsg[11:20],
-						SourceType:     rawmsg[11:13],
+						SourceID:    rawmsg[11:20],
+						MessageType: strings.Trim(rawmsg[4:6], " "),
+						// Source:      rawmsg[11:20],
+						// SourceType:     rawmsg[11:13],
 						SourceTypeName: deviceTypeMap[rawmsg[11:13]],
-						CommandCode:    rawmsg[41:45],
-						CommandName:    commandsMap[rawmsg[41:45]],
+						// CommandCode:    rawmsg[41:45],
+						CommandName: commandsMap[rawmsg[41:45]],
 					}
-					log.Info().Int("len", length).Interface("msg", message).Msg(rawmsg)
+					log.Info().Int("len", length).Msg(rawmsg)
+					log.Info().Interface("msg", message)
 				} else {
 					// log.Debug().Int("len", length).Msg(rawmsg)
 				}

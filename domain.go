@@ -5,14 +5,14 @@ type State struct {
 }
 
 type Message struct {
-	SourceID       string
-	MessageType    string
-	Source         string
-	SourceType     string
+	SourceID    string
+	MessageType string
+	// Source      string
+	// SourceType     string
 	SourceTypeName string
-	CommandCode    string
-	CommandName    string
-	Payload        string
+	// CommandCode    string
+	CommandName string
+	Payload     string
 
 	// self.source_id    = rawmsg[11:20]
 
