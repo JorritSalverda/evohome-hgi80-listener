@@ -124,26 +124,21 @@ func main() {
 
 			rawmsg := hex.EncodeToString(buf)
 
-			// self.source_id    = rawmsg[11:20]
-
-			// self.msg_type     = rawmsg[4:6].strip()
-			// self.source       = rawmsg[11:20]               # device 1 - This looks as if this is always the source; Note this is overwritten with name of device
-			// self.source_type  = rawmsg[11:13]               # the first 2 digits seem to be identifier for type of device
-
-			if len(rawmsg) >= 50 {
-				message := Message{
-					SourceID:    rawmsg[11:20],
-					MessageType: strings.Trim(rawmsg[4:6], " "),
-					Source:      rawmsg[11:20],
-					SourceType:  rawmsg[11:13],
-					CommandCode: rawmsg[41:45],
-					CommandName: commandsMap[rawmsg[41:45]],
+			length := len(rawmsg)
+			if length >= 2 {
+				if length >= 50 {
+					message := Message{
+						SourceID:    rawmsg[11:20],
+						MessageType: strings.Trim(rawmsg[4:6], " "),
+						Source:      rawmsg[11:20],
+						SourceType:  rawmsg[11:13],
+						CommandCode: rawmsg[41:45],
+						CommandName: commandsMap[rawmsg[41:45]],
+					}
+					log.Info().Int("len", length).Interface("msg", message).Msg(rawmsg)
+				} else {
+					log.Debug().Int("len", length).Msg(rawmsg)
 				}
-
-				log.Info().Interface("msg", message).Msg(rawmsg)
-
-			} else {
-				log.Debug().Msg(rawmsg)
 			}
 		}
 	}
