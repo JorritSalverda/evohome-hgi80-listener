@@ -12,6 +12,7 @@ type Message struct {
 	SourceTypeName string
 	CommandCode    string
 	CommandName    string
+	Payload        string
 
 	// self.source_id    = rawmsg[11:20]
 
@@ -83,4 +84,23 @@ var deviceTypeMap = map[string]string{
 	"13": "BDR",
 	"30": "GWAY",
 	"34": "STAT",
+}
+
+var controllerModesMap = map[int]string{
+	0: "Auto",
+	1: "Heating Off",
+	2: "Eco-Auto",
+	3: "Away",
+	4: "Day Off",
+	7: "Custom",
+}
+
+var deviceTypePropertiesMap = map[string][]string{
+	"CTL":  []string{"temperature", "setpoint", "until", "heat-demand"},
+	"UFH":  []string{},
+	"TRV":  []string{"temperature", "setpoint", "until", "heat-demand", "window"},
+	"DHW":  []string{"state", "temperature", "dhw-mode", "until"},
+	"BDR":  []string{"temperature", "heat-demand"},
+	"GWAY": []string{},
+	"STAT": []string{"temperature", "setpoint", "until"},
 }

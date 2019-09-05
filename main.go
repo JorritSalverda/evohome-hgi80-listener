@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -122,7 +121,8 @@ func main() {
 		} else {
 			buf = buf[:n]
 
-			rawmsg := hex.EncodeToString(buf)
+			//rawmsg := hex.EncodeToString(buf)
+			rawmsg := string(buf)
 
 			length := len(rawmsg)
 			if length > 2 {
