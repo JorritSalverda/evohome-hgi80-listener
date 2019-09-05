@@ -170,7 +170,8 @@ func main() {
 				// }
 
 				// check if it matches the pattern to be expected from evohome
-				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) ---`, rawmsg)
+				//match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
 				length := len(rawmsg)
 
 				if match {
@@ -185,10 +186,10 @@ func main() {
 					}
 					log.Info().Int("len", length).Interface("msg", message).Msg(rawmsg)
 				} else {
-					log.Debug().Int("len", length).Msg(rawmsg)
+					// log.Debug().Int("len", length).Msg(rawmsg)
 				}
 			} else if rawmsg != "\u0011" {
-				log.Debug().Int("len", length).Msg(rawmsg)
+				// log.Debug().Int("len", length).Msg(rawmsg)
 			}
 		}
 	}
