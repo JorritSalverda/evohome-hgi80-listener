@@ -51,19 +51,20 @@ func main() {
 
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	output.FormatLevel = func(i interface{}) string {
-		return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
+		// return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
+		return ""
 	}
 	output.FormatMessage = func(i interface{}) string {
-		return fmt.Sprintf("***%s****", i)
+		return fmt.Sprintf("%s", i)
 	}
 	output.FormatFieldName = func(i interface{}) string {
-		return fmt.Sprintf("%s:", i)
+		return fmt.Sprintf(" | %s:", i)
 	}
 	output.FormatFieldValue = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf("%s", i))
 	}
 
-	log.Logger = zerolog.New(output).With().Timestamp().Logger()
+	log.Logger = zerolog.New(output).With().Logger()
 
 	// use zerolog for any logs sent via standard log library
 	stdlog.SetFlags(0)
