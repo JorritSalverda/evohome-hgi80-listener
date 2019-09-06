@@ -207,21 +207,8 @@ func main() {
 					}
 					payload := rawmsg[50:]
 
-					// // log interpreted values
-					// log.Info().
-					// 	Str("messageType", messageType).
-					// 	// Str("sourceType", sourceType).
-					// 	// Str("sourceID", sourceID).
-					// 	Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
-					// 	// Str("destinationType", destinationType).
-					// 	// Str("destinationID", destinationID).
-					// 	Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-					// 	Bool("isBroadcast", isBroadcast).
-					// 	// Str("command", command).
-					// 	Str("commandType", commandType).
-					// 	Int("payloadLength", int(payloadLength)).
-					// 	Str("payload", payload).
-					// 	Msg(rawmsg)
+					log.Info().
+						Msg(rawmsg)
 
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
 						// heat demand for zone
@@ -232,12 +219,7 @@ func main() {
 						log.Info().
 							Int("zoneID", int(zoneID)).
 							Float64("demandPercentage", demandPercentage).
-							Str("messageType", messageType).
-							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
-							Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-							Bool("isBroadcast", isBroadcast).
-							Str("commandType", commandType).
-							Msg(rawmsg)
+							Msg(commandType)
 
 						measurements := []BigQueryMeasurement{
 							BigQueryMeasurement{
@@ -257,17 +239,7 @@ func main() {
 						log.Debug().Msgf("Inserting measurements into table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
 						err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
 						if err != nil {
-							// log.Warn().Err(err).Msg("Failed inserting measurements into bigquery table, trying to update the schema")
-							// // table schema might have changed, updated it and retry to insert
-							// err := bigqueryClient.UpdateTableSchema(*bigqueryDataset, *bigqueryTable, BigQueryMeasurement{})
-							// if err != nil {
-							// 	log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
-							// }
-
-							// err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
-							// if err != nil {
 							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
-							// }
 						}
 					}
 				}
