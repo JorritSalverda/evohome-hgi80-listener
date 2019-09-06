@@ -193,8 +193,7 @@ func main() {
 						Str("commandType", commandType).
 						Int("payloadLength", int(payloadLength)).
 						Str("payload", payload).
-						// Msg(rawmsg)
-						Msg("")
+						Msg(rawmsg)
 
 					if commandType == "zone_heat_demand" && !isBroadcast {
 						// heat demand for relay
@@ -206,7 +205,7 @@ func main() {
 							Int("zoneID", int(zoneID)).
 							Int("demand", int(demand)).
 							Float64("demandPercentage", demandPercentage).
-							Msg("")
+							Msg("Relay heat demand")
 					}
 				}
 			}
