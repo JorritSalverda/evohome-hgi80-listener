@@ -181,21 +181,21 @@ func main() {
 					}
 					payload := rawmsg[50:]
 
-					// log interpreted values
-					log.Info().
-						Str("messageType", messageType).
-						// Str("sourceType", sourceType).
-						// Str("sourceID", sourceID).
-						Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
-						// Str("destinationType", destinationType).
-						// Str("destinationID", destinationID).
-						Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-						Bool("isBroadcast", isBroadcast).
-						// Str("command", command).
-						Str("commandType", commandType).
-						Int("payloadLength", int(payloadLength)).
-						Str("payload", payload).
-						Msg(rawmsg)
+					// // log interpreted values
+					// log.Info().
+					// 	Str("messageType", messageType).
+					// 	// Str("sourceType", sourceType).
+					// 	// Str("sourceID", sourceID).
+					// 	Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+					// 	// Str("destinationType", destinationType).
+					// 	// Str("destinationID", destinationID).
+					// 	Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+					// 	Bool("isBroadcast", isBroadcast).
+					// 	// Str("command", command).
+					// 	Str("commandType", commandType).
+					// 	Int("payloadLength", int(payloadLength)).
+					// 	Str("payload", payload).
+					// 	Msg(rawmsg)
 
 					if commandType == "zone_heat_demand" && payloadLength == 2 {
 						// heat demand for zone
@@ -205,9 +205,13 @@ func main() {
 
 						log.Info().
 							Int("zoneID", int(zoneID)).
-							// Int("demand", int(demand)).
 							Float64("demandPercentage", demandPercentage).
-							Msg("Zone heat demand")
+							Str("messageType", messageType).
+							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+							Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+							Bool("isBroadcast", isBroadcast).
+							Str("commandType", commandType).
+							Msg(rawmsg)
 					}
 					if commandType == "relay_heat_demand" && payloadLength == 2 {
 						// heat demand for relay
@@ -217,9 +221,13 @@ func main() {
 
 						log.Info().
 							Int("relayID", int(relayID)).
-							// Int("demand", int(demand)).
 							Float64("demandPercentage", demandPercentage).
-							Msg("Relay heat demand")
+							Str("messageType", messageType).
+							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+							Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+							Bool("isBroadcast", isBroadcast).
+							Str("commandType", commandType).
+							Msg(rawmsg)
 					}
 				}
 			}
