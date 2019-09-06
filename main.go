@@ -54,7 +54,7 @@ func main() {
 		return ""
 	}
 	output.FormatMessage = func(i interface{}) string {
-		return fmt.Sprintf("| %s", i)
+		return fmt.Sprintf("%s", i)
 	}
 	output.FormatFieldName = func(i interface{}) string {
 		return fmt.Sprintf("| %s: ", i)
@@ -182,6 +182,9 @@ func main() {
 					source := rawmsg[11:20]
 					sourceType := deviceTypeMap[source[0:2]]
 					sourceID := source[3:]
+					if sourceType == "" {
+						sourceType = "NA"
+					}
 
 					// destination device
 					destination := rawmsg[21:30]
@@ -190,12 +193,18 @@ func main() {
 					}
 					destinationType := deviceTypeMap[destination[0:2]]
 					destinationID := destination[3:]
+					if destinationType == "" {
+						destinationType = "NA"
+					}
 
 					isBroadcast := source == destination
 
 					// command
 					command := rawmsg[41:45]
 					commandType := commandsMap[strings.ToUpper(command)]
+					if commandType == "" {
+						commandType = "unknown"
+					}
 
 					// payload
 					payloadLength, err := strconv.ParseInt(rawmsg[46:49], 10, 64)
@@ -205,7 +214,7 @@ func main() {
 					payload := rawmsg[50:]
 
 					log.Info().
-						Str("msg", rawmsg).
+						Str("message", rawmsg).
 						Msg(commandType)
 
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
@@ -234,7 +243,7 @@ func main() {
 							},
 						}
 
-						log.Debug().Msgf("Inserting measurements into table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
+						// log.Debug().Msgf("Inserting measurements into table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
 						err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
 						if err != nil {
 							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
