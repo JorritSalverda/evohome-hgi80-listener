@@ -55,7 +55,7 @@ func main() {
 		return fmt.Sprintf("%s", i)
 	}
 	output.FormatFieldName = func(i interface{}) string {
-		return fmt.Sprintf("| %s:", i)
+		return fmt.Sprintf("| %s: ", i)
 	}
 	output.FormatFieldValue = func(i interface{}) string {
 		return fmt.Sprintf("%s", i)
@@ -168,12 +168,14 @@ func main() {
 					destinationType := deviceTypeMap[destination[0:2]]
 					destinationID := destination[3:]
 
+					isBroadcast := source == destination
+
 					// command
 					command := rawmsg[41:45]
 					commandType := commandsMap[strings.ToUpper(command)]
 
 					// payload
-					payloadLength, err := strconv.ParseInt("rawmsg[46:49]", 10, 64)
+					payloadLength, err := strconv.ParseInt(rawmsg[46:49], 10, 64)
 					if err != nil {
 						payloadLength = 0
 					}
@@ -186,11 +188,26 @@ func main() {
 						Str("sourceID", sourceID).
 						Str("destinationType", destinationType).
 						Str("destinationID", destinationID).
+						Bool("isBroadcast", isBroadcast).
 						Str("command", command).
 						Str("commandType", commandType).
 						Int("payloadLength", int(payloadLength)).
 						Str("payload", payload).
-						Msg(rawmsg)
+						// Msg(rawmsg)
+						Msg("")
+
+					if commandType == "zone_heat_demand" && !isBroadcast {
+						// heat demand for relay
+						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
+						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
+						demandPercentage := float64(demand) / 200 * 100
+
+						log.Info().
+							Int("zoneID", int(zoneID)).
+							Int("demand", int(demand)).
+							Float64("demandPercentage", demandPercentage).
+							Msg("")
+					}
 				}
 			}
 		}
