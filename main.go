@@ -160,8 +160,6 @@ func main() {
 				}
 				defer f.Close()
 				in = bufio.NewReader(f)
-			} else {
-				log.Warn().Err(err).Msg("Read EOF, stopping application...")
 			}
 		} else {
 			rawmsg := strings.TrimSpace(string(buf))
