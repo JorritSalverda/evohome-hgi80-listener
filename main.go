@@ -214,7 +214,7 @@ func main() {
 					payload := rawmsg[50:]
 
 					log.Info().
-						Str("message", rawmsg).
+						Str("raw", rawmsg).
 						Msg(commandType)
 
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
