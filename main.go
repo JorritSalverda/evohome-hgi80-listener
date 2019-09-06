@@ -189,7 +189,7 @@ func main() {
 						Str("destinationType", destinationType).
 						Str("destinationID", destinationID).
 						Bool("isBroadcast", isBroadcast).
-						Str("command", command).
+						// Str("command", command).
 						Str("commandType", commandType).
 						Int("payloadLength", int(payloadLength)).
 						Str("payload", payload).
@@ -203,7 +203,7 @@ func main() {
 
 						log.Info().
 							Int("zoneID", int(zoneID)).
-							Int("demand", int(demand)).
+							// Int("demand", int(demand)).
 							Float64("demandPercentage", demandPercentage).
 							Msg("Relay heat demand")
 					}
