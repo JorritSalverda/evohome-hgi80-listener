@@ -143,7 +143,7 @@ func main() {
 
 	for {
 
-		buf, err := in.ReadBytes('\n')
+		buf, isPrefix, err := in.ReadLine()
 
 		if err != nil {
 			if err != io.EOF {
@@ -161,8 +161,10 @@ func main() {
 				defer f.Close()
 				in = bufio.NewReader(f)
 			}
+		} else if isPrefix {
+			log.Warn().Str("_", string(buf)).Msgf("Message is too long for buffer and split over multiple lines")
 		} else {
-			rawmsg := strings.TrimSpace(string(buf))
+			rawmsg := string(buf)
 			length := len(rawmsg)
 
 			// make sure no obvious errors in getting the data....
