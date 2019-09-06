@@ -215,6 +215,8 @@ func main() {
 
 					log.Info().
 						Str("raw", rawmsg).
+						Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+						Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 						Msg(commandType)
 
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
