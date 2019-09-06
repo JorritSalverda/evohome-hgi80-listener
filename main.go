@@ -242,6 +242,7 @@ func main() {
 								DestinationType:  destinationType,
 								DestinationID:    destinationID,
 								Broadcast:        isBroadcast,
+								ZoneID:           int(zoneID),
 								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
 								InsertedAt:       time.Now().UTC(),
 							},
@@ -250,7 +251,17 @@ func main() {
 						log.Debug().Msgf("Inserting measurements into table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
 						err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
 						if err != nil {
-							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+							log.Warn().Err(err).Msg("Failed inserting measurements into bigquery table, trying to update the schema")
+							// table schema might have changed, updated it and retry to insert
+							err := bigqueryClient.UpdateTableSchema(*bigqueryDataset, *bigqueryTable, BigQueryMeasurement{})
+							if err != nil {
+								log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
+							}
+
+							err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+							if err != nil {
+								log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+							}
 						}
 					}
 				}

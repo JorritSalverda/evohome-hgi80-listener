@@ -13,6 +13,7 @@ type BigQueryClient interface {
 	CheckIfDatasetExists(dataset string) bool
 	CheckIfTableExists(dataset, table string) bool
 	CreateTable(dataset, table string, typeForSchema interface{}, partitionField string, waitReady bool) error
+	UpdateTableSchema(dataset, table string, typeForSchema interface{}) error
 	DeleteTable(dataset, table string) error
 	InsertMeasurements(dataset, table string, measurements []BigQueryMeasurement) error
 }
@@ -96,6 +97,29 @@ func (bqc *bigQueryClientImpl) CreateTable(dataset, table string, typeForSchema 
 	return nil
 }
 
+func (bqc *bigQueryClientImpl) UpdateTableSchema(dataset, table string, typeForSchema interface{}) error {
+	tbl := bqc.client.Dataset(dataset).Table(table)
+
+	// infer the schema of the type
+	schema, err := bigquery.InferSchema(typeForSchema)
+	if err != nil {
+		return err
+	}
+
+	meta, err := tbl.Metadata(context.Background())
+	if err != nil {
+		return err
+	}
+
+	update := bigquery.TableMetadataToUpdate{
+		Schema: schema,
+	}
+	if _, err := tbl.Update(context.Background(), update, meta.ETag); err != nil {
+		return err
+	}
+
+	return nil
+}
 func (bqc *bigQueryClientImpl) DeleteTable(dataset, table string) error {
 	tbl := bqc.client.Dataset(dataset).Table(table)
 

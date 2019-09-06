@@ -46,6 +46,23 @@ spec:
             configMapKeyRef:
               name: evohome-hgi80-listener-configs
               key: evohome-id
+        - name: BQ_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              key: bq-project-id
+              name: evohome-hgi80-listener-configs
+        - name: BQ_DATASET
+          valueFrom:
+            configMapKeyRef:
+              key: bq-dataset
+              name: evohome-hgi80-listener-configs
+        - name: BQ_TABLE
+          valueFrom:
+            configMapKeyRef:
+              key: bq-table
+              name: evohome-hgi80-listener-configs
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/keyfile.json
         resources:
           requests:
             cpu: 100m
@@ -58,6 +75,8 @@ spec:
         volumeMounts:
         - name: configs
           mountPath: /configs
+        - name: secrets
+          mountPath: /secrets
         - name: hgi
           mountPath: /dev/ttyUSB0
       terminationGracePeriodSeconds: 300
@@ -65,6 +84,10 @@ spec:
       - name: configs
         configMap:
           name: evohome-hgi80-listener-configs
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: evohome-hgi80-listener-credentials
       - name: hgi
         hostPath:
           path: ${HGI_USB_PATH}
