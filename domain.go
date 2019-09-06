@@ -120,7 +120,7 @@ type BigQueryMeasurement struct {
 	DestinationType  string               `bigquery:"destination_type"`
 	DestinationID    string               `bigquery:"destination_id"`
 	Broadcast        bool                 `bigquery:"broadcast"`
-	ZoneID           int                  `bigquery:"zone_id"`
+	ZoneID           bigquery.NullInt64   `bigquery:"zone_id"`
 	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
 	InsertedAt       time.Time            `bigquery:"inserted_at"`
 }
