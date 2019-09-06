@@ -50,14 +50,11 @@ func main() {
 	zerolog.LevelFieldName = "severity"
 
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	output.FormatTimestamp = func(i interface{}) string {
-		return ""
-	}
 	output.FormatLevel = func(i interface{}) string {
 		return ""
 	}
 	output.FormatMessage = func(i interface{}) string {
-		return fmt.Sprintf("%s", i)
+		return fmt.Sprintf("| %s", i)
 	}
 	output.FormatFieldName = func(i interface{}) string {
 		return fmt.Sprintf("| %s: ", i)
@@ -208,7 +205,8 @@ func main() {
 					payload := rawmsg[50:]
 
 					log.Info().
-						Msg(rawmsg)
+						Str("msg", rawmsg).
+						Msg(commandType)
 
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
 						// heat demand for zone
