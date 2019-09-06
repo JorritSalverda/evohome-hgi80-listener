@@ -284,7 +284,10 @@ func requestZoneNameCommand(controllerID string, zoneID int) string {
 	commandCode := "0004"
 	gatewayID := "30:999999"
 
-	return fmt.Sprintf("045 RQ --- %v %v --:------ %v 002 %02X%02X\r\n", gatewayID, controllerID, commandCode, zoneID, 0)
+	payload := fmt.Sprintf("%02X%02X", zoneID, 0)
+	payloadLength := len(payload) / 2
+
+	return fmt.Sprintf("RQ --- %v %v --:------ %v %03d %v\r\n", gatewayID, controllerID, commandCode, payloadLength, payload)
 }
 
 // void CEvohome::RequestZoneName(uint8_t nZone)
@@ -295,3 +298,24 @@ func requestZoneNameCommand(controllerID string, zoneID int) string {
 // CEvohomeMsg(packettype nType, int nAddr, int nCommand):flags(0),type(nType),timestamp(0),command(nCommand),payloadsize(0),readofs(0){SetID(1,nAddr);SetFlag(flgpkt|flgcmd);}
 
 // template<typename T> CEvohomeMsg& Add(const T &in){CEvohomeDataType::Add(in,payload,payloadsize);return *this;}
+
+// command.send_string = "{} --- {} {} {} {:<4} {:03d} {}".format(command.send_mode, command.dev1,
+// 	command.dev2, command.dev3, command.command_code, command.payload_length(), command.payload)
+//   display_and_log("COMMAND_OUT","{}: Sending '{}'".format(command.command_name.upper() if command.command_name is not None else "-None-", command.send_string))
+//   byte_command = bytearray(b'{}\r\n'.format(command.send_string))
+
+// std::string out(m_SendQueue.front().Encode()+"\r\n");
+// write(out.c_str(),out.length());
+
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0000\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0100\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0200\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0300\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0400\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0500\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0600\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0700\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0800\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0900\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0A00\r\n
+// 045 RQ --- 30:999999 01:160371 --:------ 0004 002 0B00\r\n
