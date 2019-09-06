@@ -197,14 +197,26 @@ func main() {
 						Str("payload", payload).
 						Msg(rawmsg)
 
-					if commandType == "zone_heat_demand" && !isBroadcast {
-						// heat demand for relay
+					if commandType == "zone_heat_demand" && payloadLength == 2 {
+						// heat demand for zone
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
 						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
 						demandPercentage := float64(demand) / 200 * 100
 
 						log.Info().
 							Int("zoneID", int(zoneID)).
+							// Int("demand", int(demand)).
+							Float64("demandPercentage", demandPercentage).
+							Msg("Zone heat demand")
+					}
+					if commandType == "relay_heat_demand" && payloadLength == 2 {
+						// heat demand for relay
+						relayID, _ := strconv.ParseInt(payload[0:2], 16, 64)
+						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
+						demandPercentage := float64(demand) / 200 * 100
+
+						log.Info().
+							Int("relayID", int(relayID)).
 							// Int("demand", int(demand)).
 							Float64("demandPercentage", demandPercentage).
 							Msg("Relay heat demand")
