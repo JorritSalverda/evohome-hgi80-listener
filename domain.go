@@ -10,51 +10,6 @@ import (
 type State struct {
 }
 
-type Message struct {
-	SourceID    string
-	MessageType string
-	// Source      string
-	// SourceType     string
-	SourceTypeName string
-	// CommandCode    string
-	CommandName string
-	Payload     string
-
-	// self.source_id    = rawmsg[11:20]
-
-	// self.msg_type     = rawmsg[4:6].strip()
-	// self.source       = rawmsg[11:20]               # device 1 - This looks as if this is always the source; Note this is overwritten with name of device
-	// self.source_type  = rawmsg[11:13]               # the first 2 digits seem to be identifier for type of device
-	// self.source_name  = self.source
-	// self.device2      = rawmsg[21:30]               # device 2 - Requests (RQ), Responses (RP) and Write (W) seem to be sent to device 2 only
-	// self.device2_type = rawmsg[21:23]               # device 2 type
-	// self.device2_name = self.device2
-	// self.device3      = rawmsg[31:40]               # device 3 - Information (I) is to device 3. Broadcast messages have device 1 and 3 are the same
-	// self.device3_type = rawmsg[31:33]               # device 3 type
-	// self.device3_name = self.device3
-
-	// if self.device2 == EMPTY_DEVICE_ID:
-	//     self.destination = self.device3
-	//     self.destination_type = self.device3_type
-	// else:
-	//     self.destination = self.device2
-	//     self.destination_type = self.device2_type
-	// self.destination_name = self.destination
-	// self._initialise_device_names()
-
-	// self.command_code = rawmsg[41:45].upper()       # command code hex
-	// self.command_name = self.command_code           # needs to be assigned outside, as we are doing all the processing outside of this class/struct
-	// try:
-	//     self.payload_length = int(rawmsg[46:49])          # Note this is not HEX...
-	// except Exception as e:
-	//     print ("Error instantiating Message class on line "{}": {}. Raw msg: "{}". length = {}".format(sys.exc_info()[-1].tb_lineno, str(e), rawmsg, len(rawmsg)))
-	//     self.payload_length = 0
-
-	// self.payload      = rawmsg[50:]
-	// self.port         = None
-	// self.failed_decrypt= "_ENC" in rawmsg or "_BAD" in rawmsg or "BAD_" in rawmsg or "ERR" in rawmsg
-}
-
 var commandsMap = map[string]string{
 	"0002": "external_sensor",
 	"0004": "zone_name",
@@ -83,33 +38,14 @@ var commandsMap = map[string]string{
 }
 
 var deviceTypeMap = map[string]string{
-	"01": "CTL",
-	"02": "UFH",
-	"04": "TRV",
-	"07": "DHW",
-	"10": "REL",
-	"13": "BDR",
-	"30": "GWAY",
-	"34": "STAT",
-}
-
-var controllerModesMap = map[int]string{
-	0: "Auto",
-	1: "Heating Off",
-	2: "Eco-Auto",
-	3: "Away",
-	4: "Day Off",
-	7: "Custom",
-}
-
-var deviceTypePropertiesMap = map[string][]string{
-	"CTL":  []string{"temperature", "setpoint", "until", "heat-demand"},
-	"UFH":  []string{},
-	"TRV":  []string{"temperature", "setpoint", "until", "heat-demand", "window"},
-	"DHW":  []string{"state", "temperature", "dhw-mode", "until"},
-	"BDR":  []string{"temperature", "heat-demand"},
-	"GWAY": []string{},
-	"STAT": []string{"temperature", "setpoint", "until"},
+	"01": "CTL",  // controller (evohome touch)
+	"02": "UFH",  // underfloor heating (HCE80)
+	"04": "TRV",  // thermostatic radiator valve
+	"07": "DHW",  // domestic hot water
+	"10": "OTB",  // opentherm bridge (R8810A1018)
+	"13": "BDR",  // on/off relay (BDR91)
+	"30": "GWAY", // gateway
+	"34": "STAT", // thermostat
 }
 
 type BigQueryMeasurement struct {
@@ -121,6 +57,7 @@ type BigQueryMeasurement struct {
 	DestinationID    string               `bigquery:"destination_id"`
 	Broadcast        bool                 `bigquery:"broadcast"`
 	ZoneID           bigquery.NullInt64   `bigquery:"zone_id"`
+	ZoneName         string               `bigquery:"zone_name"`
 	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
 	InsertedAt       time.Time            `bigquery:"inserted_at"`
 }

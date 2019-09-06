@@ -139,6 +139,18 @@ func main() {
 	}
 	defer f.Close()
 
+	// try to get all zone names
+	for i := 0; i < 12; i++ {
+		command := requestZoneNameCommand(*evohomeID, i)
+		log.Info().Str("_", command).Msgf("Requesting name for zone %v...", i)
+		count, err := f.Write([]byte(command))
+		if err != nil {
+			fmt.Println("Error writing to serial port: ", err)
+		} else {
+			fmt.Printf("Wrote %v bytes\n", count)
+		}
+	}
+
 	in := bufio.NewReader(f)
 
 	for {
@@ -266,4 +278,11 @@ func main() {
 			}
 		}
 	}
+}
+
+func requestZoneNameCommand(controllerID string, zoneID int) string {
+	commandCode := "0004"
+	gatewayID := "30:999999"
+
+	return fmt.Sprintf("045 RQ --- %v %v --:------ %v 002 %X%X", gatewayID, controllerID, commandCode, zoneID, 0)
 }
