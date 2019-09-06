@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/alecthomas/kingpin"
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/rs/zerolog"
@@ -34,6 +35,10 @@ var (
 	hgiDevicePath = kingpin.Flag("hgi-device-path", "Path to usb device connecting HGI80.").Default("/dev/ttyUSB0").OverrideDefaultFromEnvar("HGI_DEVICE_PATH").String()
 	evohomeID     = kingpin.Flag("evohome-id", "ID of the Evohome Touch device").Envar("EVOHOME_ID").Required().String()
 	namespace     = kingpin.Flag("namespace", "Namespace the pod runs in.").Envar("NAMESPACE").Required().String()
+
+	bigqueryProjectID = kingpin.Flag("bigquery-project-id", "Google Cloud project id that contains the BigQuery dataset").Envar("BQ_PROJECT_ID").Required().String()
+	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
+	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
 )
 
 func main() {
@@ -92,6 +97,21 @@ func main() {
 		// unmarshal state file
 		if err := json.Unmarshal(data, &state); err != nil {
 			log.Fatal().Err(err).Interface("data", data).Msg("Failed unmarshalling state")
+		}
+	}
+
+	bigqueryClient, err := NewBigQueryClient(*bigqueryProjectID)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating bigquery client")
+	}
+
+	log.Debug().Msgf("Checking if table %v.%v.%v exists...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
+	tableExist := bigqueryClient.CheckIfTableExists(*bigqueryDataset, *bigqueryTable)
+	if !tableExist {
+		log.Debug().Msgf("Creating table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
+		err := bigqueryClient.CreateTable(*bigqueryDataset, *bigqueryTable, BigQueryMeasurement{}, "inserted_at", true)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed creating bigquery table")
 		}
 	}
 
@@ -197,7 +217,7 @@ func main() {
 					// 	Str("payload", payload).
 					// 	Msg(rawmsg)
 
-					if commandType == "zone_heat_demand" && payloadLength == 2 {
+					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
 						// heat demand for zone
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
 						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
@@ -212,22 +232,26 @@ func main() {
 							Bool("isBroadcast", isBroadcast).
 							Str("commandType", commandType).
 							Msg(rawmsg)
-					}
-					if commandType == "relay_heat_demand" && payloadLength == 2 {
-						// heat demand for relay
-						relayID, _ := strconv.ParseInt(payload[0:2], 16, 64)
-						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
-						demandPercentage := float64(demand) / 200 * 100
 
-						log.Info().
-							Int("relayID", int(relayID)).
-							Float64("demandPercentage", demandPercentage).
-							Str("messageType", messageType).
-							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
-							Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-							Bool("isBroadcast", isBroadcast).
-							Str("commandType", commandType).
-							Msg(rawmsg)
+						measurements := []BigQueryMeasurement{
+							BigQueryMeasurement{
+								MessageType:      messageType,
+								CommandType:      commandType,
+								SourceType:       sourceType,
+								SourceID:         sourceID,
+								DestinationType:  destinationType,
+								DestinationID:    destinationID,
+								Broadcast:        isBroadcast,
+								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
+								InsertedAt:       time.Now().UTC(),
+							},
+						}
+
+						log.Debug().Msgf("Inserting measurements into table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
+						err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+						if err != nil {
+							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+						}
 					}
 				}
 			}

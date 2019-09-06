@@ -1,5 +1,11 @@
 package main
 
+import (
+	"time"
+
+	"cloud.google.com/go/bigquery"
+)
+
 // State contains the state of all devices emitting data catched by the HGI80 device
 type State struct {
 }
@@ -81,6 +87,7 @@ var deviceTypeMap = map[string]string{
 	"02": "UFH",
 	"04": "TRV",
 	"07": "DHW",
+	"10": "REL",
 	"13": "BDR",
 	"30": "GWAY",
 	"34": "STAT",
@@ -103,4 +110,16 @@ var deviceTypePropertiesMap = map[string][]string{
 	"BDR":  []string{"temperature", "heat-demand"},
 	"GWAY": []string{},
 	"STAT": []string{"temperature", "setpoint", "until"},
+}
+
+type BigQueryMeasurement struct {
+	MessageType      string               `bigquery:"message_type"`
+	CommandType      string               `bigquery:"command_type"`
+	SourceType       string               `bigquery:"source_type"`
+	SourceID         string               `bigquery:"source_id"`
+	DestinationType  string               `bigquery:"destination_type"`
+	DestinationID    string               `bigquery:"destination_id"`
+	Broadcast        bool                 `bigquery:"broadcast"`
+	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
+	InsertedAt       time.Time            `bigquery:"inserted_at"`
 }
