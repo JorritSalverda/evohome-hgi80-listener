@@ -184,10 +184,12 @@ func main() {
 					// log interpreted values
 					log.Info().
 						Str("messageType", messageType).
-						Str("sourceType", sourceType).
-						Str("sourceID", sourceID).
-						Str("destinationType", destinationType).
-						Str("destinationID", destinationID).
+						// Str("sourceType", sourceType).
+						// Str("sourceID", sourceID).
+						Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+						// Str("destinationType", destinationType).
+						// Str("destinationID", destinationID).
+						Str("destination", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 						Bool("isBroadcast", isBroadcast).
 						// Str("command", command).
 						Str("commandType", commandType).
