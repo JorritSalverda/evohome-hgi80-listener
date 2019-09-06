@@ -113,6 +113,12 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed creating bigquery table")
 		}
+	} else {
+		log.Debug().Msgf("Trying to update table %v.%v.%v schema...", *bigqueryProjectID, *bigqueryDataset, *bigqueryTable)
+		err := bigqueryClient.UpdateTableSchema(*bigqueryDataset, *bigqueryTable, BigQueryMeasurement{})
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
+		}
 	}
 
 	log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
