@@ -125,7 +125,7 @@ func main() {
 		BaudRate:               115200,
 		DataBits:               8,
 		StopBits:               1,
-		MinimumReadSize:        0,
+		MinimumReadSize:        1,
 		InterCharacterTimeout:  100,
 		ParityMode:             serial.PARITY_NONE,
 		Rs485Enable:            false,
@@ -173,7 +173,12 @@ func main() {
 				!strings.Contains(rawmsg, "ERR") {
 
 				// check if it matches the pattern to be expected from evohome
-				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				match, err := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
+				if err != nil {
+					log.Warn().Err(err).
+						Str("_", rawmsg).
+						Msg("Regex failed")
+				}
 
 				if match {
 					// message type
