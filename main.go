@@ -159,6 +159,9 @@ func main() {
 					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
 				}
 				defer f.Close()
+				in = bufio.NewReader(f)
+			} else {
+				log.Warn().Err(err).Msg("Read EOF, stopping application...")
 			}
 		} else {
 			rawmsg := strings.TrimSpace(string(buf))
