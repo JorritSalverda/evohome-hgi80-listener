@@ -220,11 +220,11 @@ func main() {
 						demandPercentage := float64(demand) / 200 * 100
 
 						log.Info().
-							Str("raw", rawmsg).
+							Str("_", rawmsg).
 							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-							Int("zoneID", int(zoneID)).
-							Float64("zoneDemand", demandPercentage).
+							Int("zone", int(zoneID)).
+							Float64("demand", demandPercentage).
 							Msg(commandType)
 
 						measurements := []BigQueryMeasurement{
@@ -249,7 +249,7 @@ func main() {
 						}
 					} else {
 						log.Info().
-							Str("raw", rawmsg).
+							Str("_", rawmsg).
 							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 							Msg(commandType)
