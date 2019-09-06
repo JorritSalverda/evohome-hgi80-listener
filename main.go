@@ -213,12 +213,6 @@ func main() {
 					}
 					payload := rawmsg[50:]
 
-					log.Info().
-						Str("raw", rawmsg).
-						Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
-						Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
-						Msg(commandType)
-
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
 						// heat demand for zone
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
@@ -226,8 +220,11 @@ func main() {
 						demandPercentage := float64(demand) / 200 * 100
 
 						log.Info().
+							Str("raw", rawmsg).
+							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 							Int("zoneID", int(zoneID)).
-							Float64("demandPercentage", demandPercentage).
+							Float64("zoneDemand", demandPercentage).
 							Msg(commandType)
 
 						measurements := []BigQueryMeasurement{
@@ -250,6 +247,12 @@ func main() {
 						if err != nil {
 							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
 						}
+					} else {
+						log.Info().
+							Str("raw", rawmsg).
+							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+							Msg(commandType)
 					}
 				}
 			}
