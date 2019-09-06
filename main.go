@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,19 +44,11 @@ func main() {
 	// log as severity for stackdriver logging to recognize the level
 	zerolog.LevelFieldName = "severity"
 
-	// set some default fields added to all logs
-	// log.Logger = zerolog.New(os.Stdout).With().
-	// 	Timestamp().
-	// 	Str("app", app).
-	// 	Str("version", version).
-	// 	Logger()
-
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	output.FormatTimestamp = func(i interface{}) string {
 		return ""
 	}
 	output.FormatLevel = func(i interface{}) string {
-		// return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
 		return ""
 	}
 	output.FormatMessage = func(i interface{}) string {
@@ -127,9 +120,6 @@ func main() {
 
 	for {
 
-		// buf := make([]byte, 128)
-		// n, err := f.Read(buf)
-
 		buf, err := in.ReadBytes('\n')
 
 		if err != nil {
@@ -148,59 +138,60 @@ func main() {
 				defer f.Close()
 			}
 		} else {
-			// buf = buf[:n]
-
-			//rawmsg := hex.EncodeToString(buf)
 			rawmsg := strings.TrimSpace(string(buf))
-
 			length := len(rawmsg)
 
-			// Make sure no obvious errors in getting the data....
+			// make sure no obvious errors in getting the data....
 			if length > 40 &&
 				!strings.Contains(rawmsg, "_ENC") &&
 				!strings.Contains(rawmsg, "_BAD") &&
 				!strings.Contains(rawmsg, "BAD") &&
 				!strings.Contains(rawmsg, "ERR") {
 
-				// Echos of commands sent by us come back without the --- prefix. Noticed on the fifo firmware that sometimes the request type prefix seems to be messed up. Workaround for this...
-				// if !strings.HasPrefix(rawmsg, "---") {
-				// 	if strings.HasPrefix(rawmsg, "W---") {
-				// 		rawmsg = rawmsg[1:]
-				// 	} else {
-				// 		rawmsgparts := strings.Split(rawmsg, "")
-				// 		if len(rawmsgparts[0]) < 2 {
-				// 			rawmsg = "---  " + rawmsg
-				// 		} else {
-				// 			rawmsg = "--- " + rawmsg
-				// 		}
-				// 	}
-				// }
-
 				// check if it matches the pattern to be expected from evohome
-				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6}`, rawmsg)
-				// match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
-				length := len(rawmsg)
-
-				// 045  I --- 01:160371 --:------ 01:160371 3150 002 FC04 | len:54 |
-				// msg:{"COMMANDCODE":"3150","COMMANDNAME":"ZONE_HEAT_DEMAND","MESSAGETYPE":"I","PAYLOAD":"","SOURCE":"01:160371","SOURCEID":"01:160371","SOURCETYPE":"01","SOURCETYPENAME":"CTL"}
+				match, _ := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
 
 				if match {
-					message := Message{
-						SourceID:    rawmsg[11:20],
-						MessageType: strings.Trim(rawmsg[4:6], " "),
-						// Source:      rawmsg[11:20],
-						// SourceType:     rawmsg[11:13],
-						SourceTypeName: deviceTypeMap[rawmsg[11:13]],
-						// CommandCode:    rawmsg[41:45],
-						CommandName: commandsMap[rawmsg[41:45]],
+					// message type
+					messageType := strings.TrimSpace(rawmsg[4:6])
+
+					// source device
+					source := rawmsg[11:20]
+					sourceType := deviceTypeMap[source[0:2]]
+					sourceID := source[3:]
+
+					// destination device
+					destination := rawmsg[21:30]
+					if destination == "--:------" {
+						destination = rawmsg[31:40]
 					}
-					log.Info().Int("len", length).Msg(rawmsg)
-					log.Info().Interface("msg", message).Msg("")
-				} else {
-					// log.Debug().Int("len", length).Msg(rawmsg)
+					destinationType := deviceTypeMap[destination[0:2]]
+					destinationID := destination[3:]
+
+					// command
+					command := rawmsg[41:45]
+					commandType := commandsMap[strings.ToUpper(command)]
+
+					// payload
+					payloadLength, err := strconv.ParseInt("rawmsg[46:49]", 10, 64)
+					if err != nil {
+						payloadLength = 0
+					}
+					payload := rawmsg[50:]
+
+					// log interpreted values
+					log.Info().
+						Str("messageType", messageType).
+						Str("sourceType", sourceType).
+						Str("sourceID", sourceID).
+						Str("destinationType", destinationType).
+						Str("destinationID", destinationID).
+						Str("command", command).
+						Str("commandType", commandType).
+						Int("payloadLength", int(payloadLength)).
+						Str("payload", payload).
+						Msg(rawmsg)
 				}
-			} else if rawmsg != "\u0011" {
-				// log.Debug().Int("len", length).Msg(rawmsg)
 			}
 		}
 	}
