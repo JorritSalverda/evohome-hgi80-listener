@@ -284,5 +284,14 @@ func requestZoneNameCommand(controllerID string, zoneID int) string {
 	commandCode := "0004"
 	gatewayID := "30:999999"
 
-	return fmt.Sprintf("045 RQ --- %v %v --:------ %v 002 %X%X", gatewayID, controllerID, commandCode, zoneID, 0)
+	return fmt.Sprintf("045 RQ --- %v %v --:------ %v 002 %02X%02X\r\n", gatewayID, controllerID, commandCode, zoneID, 0)
 }
+
+// void CEvohome::RequestZoneName(uint8_t nZone)
+// {
+// 	AddSendQueue(CEvohomeMsg(CEvohomeMsg::pktreq,GetControllerID(),cmdZoneName).Add(nZone).Add(uint8_t(0)));
+// }
+
+// CEvohomeMsg(packettype nType, int nAddr, int nCommand):flags(0),type(nType),timestamp(0),command(nCommand),payloadsize(0),readofs(0){SetID(1,nAddr);SetFlag(flgpkt|flgcmd);}
+
+// template<typename T> CEvohomeMsg& Add(const T &in){CEvohomeDataType::Add(in,payload,payloadsize);return *this;}
