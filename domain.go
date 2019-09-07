@@ -80,7 +80,7 @@ type DefaultPayload struct {
 }
 
 func (p DefaultPayload) GetPayloadHex() string {
-	return ""
+	return "00"
 }
 
 type ZoneNamePayload struct {
