@@ -143,8 +143,16 @@ func main() {
 	}
 	defer f.Close()
 
-	// try to get all zone names
 	go func() {
+		// request sysinfo / heartbeat from controller
+		commandQueue <- Command{
+			messageType:   "RQ",
+			commandName:   "heartbeat",
+			destinationID: *evohomeID,
+			payload:       &DefaultPayload{},
+		}
+
+		// request all zone names
 		for i := 0; i < 12; i++ {
 
 			commandQueue <- Command{
@@ -155,7 +163,10 @@ func main() {
 					zoneID: i,
 				},
 			}
+		}
 
+		// request all zone info
+		for i := 0; i < 12; i++ {
 			commandQueue <- Command{
 				messageType:   "RQ",
 				commandName:   "zone_info",
