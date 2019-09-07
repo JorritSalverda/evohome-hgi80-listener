@@ -88,5 +88,5 @@ type ZoneNamePayload struct {
 }
 
 func (p ZoneNamePayload) GetPayloadHex() string {
-	return fmt.Sprintf("%02X%02X", p.zoneID, 0)
+	return fmt.Sprintf("%02X", p.zoneID)
 }
