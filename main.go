@@ -129,7 +129,7 @@ func main() {
 		BaudRate:               115200,
 		DataBits:               8,
 		StopBits:               1,
-		MinimumReadSize:        1,
+		MinimumReadSize:        0,
 		InterCharacterTimeout:  100,
 		ParityMode:             serial.PARITY_NONE,
 		Rs485Enable:            false,
