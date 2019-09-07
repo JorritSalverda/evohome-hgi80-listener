@@ -130,7 +130,7 @@ func main() {
 		DataBits:               8,
 		StopBits:               1,
 		MinimumReadSize:        0,
-		InterCharacterTimeout:  100,
+		InterCharacterTimeout:  2000,
 		ParityMode:             serial.PARITY_NONE,
 		Rs485Enable:            false,
 		Rs485RtsHighDuringSend: false,
@@ -312,6 +312,47 @@ func main() {
 						if err != nil {
 							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
 						}
+
+					} else if commandType == "zone_temperature" && sourceType == "CTL" && isBroadcast && payloadLength%3 == 0 {
+						// 045  I --- 01:160371 --:------ 01:160371 30C9 018 00081A0107BF0207CA03082005086B060884
+
+						// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
+						for j := 0; j < int(payloadLength/3); j++ {
+							start := 6 * j
+
+							zoneID, _ := strconv.ParseInt(payload[start+0:start+2], 16, 64)
+							temperature, _ := strconv.ParseInt(payload[start+2:start+6], 16, 64)
+							temperatureDegrees := float64(temperature) / 100
+
+							log.Info().
+								Str("_msg", rawmsg).
+								Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+								Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+								Int("zone", int(zoneID)).
+								Float64("temperature", temperatureDegrees).
+								Msg(commandType)
+
+							measurements := []BigQueryMeasurement{
+								BigQueryMeasurement{
+									MessageType:     messageType,
+									CommandType:     commandType,
+									SourceType:      sourceType,
+									SourceID:        sourceID,
+									DestinationType: destinationType,
+									DestinationID:   destinationID,
+									Broadcast:       isBroadcast,
+									ZoneID:          bigquery.NullInt64{Int64: zoneID, Valid: true},
+									Temperature:     bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
+									InsertedAt:      time.Now().UTC(),
+								},
+							}
+
+							err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+							if err != nil {
+								log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+							}
+						}
+
 					} else {
 						log.Info().
 							Str("_msg", rawmsg).
@@ -348,15 +389,13 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 		commandString = fmt.Sprintf("%v --- %v --:------ %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
 	}
 
-	// commandString := fmt.Sprintf("%v - 18:730 %v -:- %v %03d %v\r\n", messageType, destination, commandCode, payloadLength, payload)
-	// if command.broadcast {
-	// 	commandString = fmt.Sprintf("%v - 18:730 -:- 18:730 %v %03d %v\r\n", messageType, commandCode, payloadLength, payload)
-	// }
-
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
 	_, err := f.Write([]byte(commandString))
 	if err != nil {
 		log.Error().Err(err).Msgf("Sending %v command failed", command.commandName)
 	}
+
+	// wait for serial port to stabilise
+	time.Sleep(time.Duration(2) * time.Second)
 }

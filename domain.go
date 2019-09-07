@@ -61,6 +61,7 @@ type BigQueryMeasurement struct {
 	Broadcast        bool                 `bigquery:"broadcast"`
 	ZoneID           bigquery.NullInt64   `bigquery:"zone_id"`
 	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
+	Temperature      bigquery.NullFloat64 `bigquery:"temperature"`
 	InsertedAt       time.Time            `bigquery:"inserted_at"`
 }
 
