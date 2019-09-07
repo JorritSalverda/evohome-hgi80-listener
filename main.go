@@ -307,7 +307,7 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 
 	messageType := command.messageType
 	commandCode := reverseCommandsMap[command.commandName]
-	source := "30:999999"
+	source := "18:010057"
 	destination := command.destinationID
 	if command.broadcast {
 		destination = source
@@ -321,15 +321,15 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 	payload := command.payload.GetPayloadHex()
 	payloadLength := len(payload) / 2
 
-	// commandString := fmt.Sprintf("%2v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
-	// if command.broadcast {
-	// 	commandString = fmt.Sprintf("%2v --- %v --:------ %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
-	// }
-
-	commandString := fmt.Sprintf("%v - 18:730 %v --:------ %v %03d %v\r\n", messageType, destination, commandCode, payloadLength, payload)
+	commandString := fmt.Sprintf("%v - %v %v -:- %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
 	if command.broadcast {
-		commandString = fmt.Sprintf("%v - 18:730 --:------ 18:730 %v %03d %v\r\n", messageType, commandCode, payloadLength, payload)
+		commandString = fmt.Sprintf("%v - %v -:- %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
 	}
+
+	// commandString := fmt.Sprintf("%v - 18:730 %v -:- %v %03d %v\r\n", messageType, destination, commandCode, payloadLength, payload)
+	// if command.broadcast {
+	// 	commandString = fmt.Sprintf("%v - 18:730 -:- 18:730 %v %03d %v\r\n", messageType, commandCode, payloadLength, payload)
+	// }
 
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
