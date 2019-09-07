@@ -164,7 +164,6 @@ func main() {
 				messageType: "I",
 				commandName: "heartbeat",
 				broadcast:   true,
-				payload:     DefaultPayload{},
 			}
 		}
 	}()
@@ -312,6 +311,11 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 	destination := command.destinationID
 	if command.broadcast {
 		destination = source
+	}
+
+	// set default payload
+	if command.payload == nil {
+		command.payload = DefaultPayload{}
 	}
 
 	payload := command.payload.GetPayloadHex()
