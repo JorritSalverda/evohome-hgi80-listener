@@ -321,9 +321,14 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 	payload := command.payload.GetPayloadHex()
 	payloadLength := len(payload) / 2
 
-	commandString := fmt.Sprintf("%2v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+	// commandString := fmt.Sprintf("%2v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+	// if command.broadcast {
+	// 	commandString = fmt.Sprintf("%2v --- %v --:------ %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+	// }
+
+	commandString := fmt.Sprintf("%v - 18:730 %v --:------ %v %03d %v\r\n", messageType, destination, commandCode, payloadLength, payload)
 	if command.broadcast {
-		commandString = fmt.Sprintf("%2v --- %v --:------ %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+		commandString = fmt.Sprintf("%v - 18:730 --:------ 18:730 %v %03d %v\r\n", messageType, commandCode, payloadLength, payload)
 	}
 
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
