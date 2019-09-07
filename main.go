@@ -156,10 +156,10 @@ func main() {
 		}
 	}
 
-	// send heartbeat
+	// send heartbeat approx every 5 minutes to keep the usb serial port awake
 	go func() {
 		for {
-			time.Sleep(time.Duration(applyJitter(60)) * time.Second)
+			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
 			commandQueue <- Command{
 				messageType: "I",
 				commandName: "heartbeat",
@@ -323,7 +323,7 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 
 	commandString := fmt.Sprintf("%2v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
 
-	log.Info().Str("_msg", commandString).Msgf("Sending %v command...", command.commandName)
+	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
 	_, err := f.Write([]byte(commandString))
 	if err != nil {
