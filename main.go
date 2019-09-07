@@ -366,21 +366,16 @@ func main() {
 
 					} else if messageType == "RP" && commandType == "zone_name" && sourceType == "CTL" && payloadLength == 22 {
 						// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
-						// first byte has zone id, remaining bytes the zone name
-
-						// 0000576F6F6E6B616D65720000000000000000000000 woonkamer
-						// 0100576173686F6B0000000000000000000000000000 washok
-						// 02004261646B616D6572730000000000000000000000 badkamers
-						// 0300536C6161706B616D657273000000000000000000 slaapkamers
-						// 04007F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F ?
-						// 0500537475646565726B616D65720000000000000000 studeerkamer
-						// 06004C6F676565726B616D6572000000000000000000 logeerkamer
+						// first byte has zone id, second byte empty, remaining bytes the zone name
 
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
-						zoneName, err := hex.DecodeString(payload[2:])
+						zoneName, err := hex.DecodeString(payload[4:])
 						if err == nil {
-							log.Info().Msgf("Retrieved name '%v' for zone %v", string(zoneName), zoneID)
-							zoneNames[zoneID] = string(zoneName)
+							zoneNameString := strings.TrimSpace(string(zoneName))
+							log.Info().Msgf("Retrieved name '%v' for zone %v", zoneNameString, zoneID)
+							if zoneNameString != "" {
+								zoneNames[zoneID] = zoneNameString
+							}
 						} else {
 							log.Warn().Err(err).Msgf("Retrieving name for zone %v failed", zoneID)
 						}
