@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,6 +40,8 @@ var (
 	bigqueryProjectID = kingpin.Flag("bigquery-project-id", "Google Cloud project id that contains the BigQuery dataset").Envar("BQ_PROJECT_ID").Required().String()
 	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
+
+	zoneNames map[int64]string = map[int64]string{}
 )
 
 func main() {
@@ -282,6 +285,7 @@ func main() {
 					if (commandType == "relay_heat_demand" || commandType == "zone_heat_demand") && payloadLength == 2 {
 						// heat demand for zone
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
+						zoneName, knownZoneName := zoneNames[zoneID]
 						demand, _ := strconv.ParseInt(payload[2:4], 16, 64)
 						demandPercentage := float64(demand) / 200 * 100
 
@@ -290,6 +294,7 @@ func main() {
 							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 							Int("zone", int(zoneID)).
+							Str("zoneName", zoneName).
 							Float64("demand", demandPercentage).
 							Msg(commandType)
 
@@ -303,6 +308,7 @@ func main() {
 								DestinationID:    destinationID,
 								Broadcast:        isBroadcast,
 								ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+								ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName},
 								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
 								Temperature:      bigquery.NullFloat64{Valid: false},
 								InsertedAt:       time.Now().UTC(),
@@ -322,6 +328,7 @@ func main() {
 							start := 6 * j
 
 							zoneID, _ := strconv.ParseInt(payload[start+0:start+2], 16, 64)
+							zoneName, knownZoneName := zoneNames[zoneID]
 							temperature, _ := strconv.ParseInt(payload[start+2:start+6], 16, 64)
 							temperatureDegrees := float64(temperature) / 100
 
@@ -330,6 +337,7 @@ func main() {
 								Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 								Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 								Int("zone", int(zoneID)).
+								Str("zoneName", zoneName).
 								Float64("temperature", temperatureDegrees).
 								Msg(commandType)
 
@@ -343,6 +351,7 @@ func main() {
 									DestinationID:    destinationID,
 									Broadcast:        isBroadcast,
 									ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+									ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName},
 									DemandPercentage: bigquery.NullFloat64{Valid: false},
 									Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
 									InsertedAt:       time.Now().UTC(),
@@ -353,6 +362,27 @@ func main() {
 							if err != nil {
 								log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
 							}
+						}
+
+					} else if messageType == "RP" && commandType == "zone_name" && sourceType == "CTL" && payloadLength == 22 {
+						// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
+						// first byte has zone id, remaining bytes the zone name
+
+						// 0000576F6F6E6B616D65720000000000000000000000 woonkamer
+						// 0100576173686F6B0000000000000000000000000000 washok
+						// 02004261646B616D6572730000000000000000000000 badkamers
+						// 0300536C6161706B616D657273000000000000000000 slaapkamers
+						// 04007F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F ?
+						// 0500537475646565726B616D65720000000000000000 studeerkamer
+						// 06004C6F676565726B616D6572000000000000000000 logeerkamer
+
+						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
+						zoneName, err := hex.DecodeString(payload[2:])
+						if err == nil {
+							log.Info().Msgf("Retrieved name '%v' for zone %v", zoneName, zoneID)
+							zoneNames[zoneID] = string(zoneName)
+						} else {
+							log.Warn().Err(err).Msgf("Retrieving name for zone %v failed", zoneID)
 						}
 
 					} else {
