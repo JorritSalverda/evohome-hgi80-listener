@@ -154,6 +154,15 @@ func main() {
 				zoneID: i,
 			},
 		}
+
+		commandQueue <- Command{
+			messageType:   "RQ",
+			commandName:   "zone_info",
+			destinationID: *evohomeID,
+			payload: &ZoneInfoPayload{
+				zoneID: i,
+			},
+		}
 	}
 
 	// send heartbeat approx every 5 minutes to keep the usb serial port awake
