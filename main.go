@@ -150,7 +150,7 @@ func main() {
 			messageType:   "RQ",
 			commandName:   "zone_name",
 			destinationID: *evohomeID,
-			payload: ZoneNamePayload{
+			payload: &ZoneNamePayload{
 				zoneID: i,
 			},
 		}
@@ -164,8 +164,8 @@ func main() {
 				messageType: "I",
 				commandName: "heartbeat",
 				broadcast:   true,
+				payload:     DefaultPayload{},
 			}
-
 		}
 	}()
 

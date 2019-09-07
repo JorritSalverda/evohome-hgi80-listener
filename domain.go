@@ -76,10 +76,17 @@ type Payload interface {
 	GetPayloadHex() string
 }
 
+type DefaultPayload struct {
+}
+
+func (p DefaultPayload) GetPayloadHex() string {
+	return ""
+}
+
 type ZoneNamePayload struct {
 	zoneID int
 }
 
-func (z ZoneNamePayload) GetPayloadHex() string {
-	return fmt.Sprintf("%02X%02X", z.zoneID, 0)
+func (p ZoneNamePayload) GetPayloadHex() string {
+	return fmt.Sprintf("%02X%02X", p.zoneID, 0)
 }
