@@ -122,7 +122,6 @@ func main() {
 	}
 
 	// create command buffer
-
 	commandQueue := make(chan Command, 100)
 
 	log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
@@ -146,50 +145,36 @@ func main() {
 	}
 	defer f.Close()
 
+	// request zone names from controller approx once an hour to be able to store measurements with zone name and pick up changes / new zones
 	go func() {
-		// request sysinfo / heartbeat from controller
-		commandQueue <- Command{
-			messageType:   "RQ",
-			commandName:   "heartbeat",
-			destinationID: *evohomeID,
-			payload:       &DefaultPayload{},
-		}
+		for {
+			for i := 0; i < 12; i++ {
 
-		// request all zone names
-		for i := 0; i < 12; i++ {
-
-			commandQueue <- Command{
-				messageType:   "RQ",
-				commandName:   "zone_name",
-				destinationID: *evohomeID,
-				payload: &ZoneNamePayload{
-					zoneID: i,
-				},
+				commandQueue <- Command{
+					messageType:   "RQ",
+					commandName:   "zone_name",
+					destinationID: *evohomeID,
+					payload: &ZoneNamePayload{
+						zoneID: i,
+					},
+				}
 			}
-		}
 
-		// request all zone info
-		for i := 0; i < 12; i++ {
-			commandQueue <- Command{
-				messageType:   "RQ",
-				commandName:   "zone_info",
-				destinationID: *evohomeID,
-				payload: &ZoneInfoPayload{
-					zoneID: i,
-				},
-			}
+			time.Sleep(time.Duration(applyJitter(3600)) * time.Second)
 		}
 	}()
 
-	// send heartbeat approx every 5 minutes to keep the usb serial port awake
+	// send sysinfo / heartbeat request to controller approx every 5 minutes to keep the usb serial port awake
 	go func() {
 		for {
-			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
 			commandQueue <- Command{
-				messageType: "I",
-				commandName: "heartbeat",
-				broadcast:   true,
+				messageType:   "RQ",
+				commandName:   "heartbeat",
+				destinationID: *evohomeID,
+				payload:       &DefaultPayload{},
 			}
+
+			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
 		}
 	}()
 
