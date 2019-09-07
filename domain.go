@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -37,6 +38,8 @@ var commandsMap = map[string]string{
 	"3EF0": "actuator_state",
 }
 
+var reverseCommandsMap = reverseMap(commandsMap)
+
 var deviceTypeMap = map[string]string{
 	"01": "CTL",  // controller (evohome touch)
 	"02": "UFH",  // underfloor heating (HCE80)
@@ -59,4 +62,24 @@ type BigQueryMeasurement struct {
 	ZoneID           bigquery.NullInt64   `bigquery:"zone_id"`
 	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
 	InsertedAt       time.Time            `bigquery:"inserted_at"`
+}
+
+type Command struct {
+	messageType   string
+	commandName   string
+	broadcast     bool
+	destinationID string
+	payload       Payload
+}
+
+type Payload interface {
+	GetPayloadHex() string
+}
+
+type ZoneNamePayload struct {
+	zoneID int
+}
+
+func (z ZoneNamePayload) GetPayloadHex() string {
+	return fmt.Sprintf("%02X%02X", z.zoneID, 0)
 }
