@@ -304,6 +304,7 @@ func main() {
 								Broadcast:        isBroadcast,
 								ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
 								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
+								Temperature:      bigquery.NullFloat64{Valid: false},
 								InsertedAt:       time.Now().UTC(),
 							},
 						}
@@ -334,16 +335,17 @@ func main() {
 
 							measurements := []BigQueryMeasurement{
 								BigQueryMeasurement{
-									MessageType:     messageType,
-									CommandType:     commandType,
-									SourceType:      sourceType,
-									SourceID:        sourceID,
-									DestinationType: destinationType,
-									DestinationID:   destinationID,
-									Broadcast:       isBroadcast,
-									ZoneID:          bigquery.NullInt64{Int64: zoneID, Valid: true},
-									Temperature:     bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
-									InsertedAt:      time.Now().UTC(),
+									MessageType:      messageType,
+									CommandType:      commandType,
+									SourceType:       sourceType,
+									SourceID:         sourceID,
+									DestinationType:  destinationType,
+									DestinationID:    destinationID,
+									Broadcast:        isBroadcast,
+									ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+									DemandPercentage: bigquery.NullFloat64{Valid: false},
+									Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
+									InsertedAt:       time.Now().UTC(),
 								},
 							}
 
