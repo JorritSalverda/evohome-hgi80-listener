@@ -198,7 +198,7 @@ func main() {
 				in = bufio.NewReader(f)
 			}
 		} else if isPrefix {
-			log.Warn().Str("_", string(buf)).Msgf("Message is too long for buffer and split over multiple lines")
+			log.Warn().Str("_msg", string(buf)).Msgf("Message is too long for buffer and split over multiple lines")
 		} else {
 			rawmsg := string(buf)
 			length := len(rawmsg)
@@ -214,7 +214,7 @@ func main() {
 				match, err := regexp.MatchString(`^\d{3} ( I| W|RQ|RP) --- \d{2}:\d{6} (--:------ |\d{2}:\d{6} ){2}[0-9a-fA-F]{4} \d{3}`, rawmsg)
 				if err != nil {
 					log.Warn().Err(err).
-						Str("_", rawmsg).
+						Str("_msg", rawmsg).
 						Msg("Regex failed")
 				}
 
@@ -264,7 +264,7 @@ func main() {
 						demandPercentage := float64(demand) / 200 * 100
 
 						log.Info().
-							Str("_", rawmsg).
+							Str("_msg", rawmsg).
 							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 							Int("zone", int(zoneID)).
@@ -292,7 +292,7 @@ func main() {
 						}
 					} else {
 						log.Info().
-							Str("_", rawmsg).
+							Str("_msg", rawmsg).
 							Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
 							Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
 							Msg(commandType)
@@ -323,7 +323,7 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 
 	commandString := fmt.Sprintf("%2v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
 
-	log.Info().Str("_", commandString).Msgf("Sending %v command...", command.commandName)
+	log.Info().Str("_msg", commandString).Msgf("Sending %v command...", command.commandName)
 
 	_, err := f.Write([]byte(commandString))
 	if err != nil {
