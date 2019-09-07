@@ -308,7 +308,7 @@ func main() {
 								DestinationID:    destinationID,
 								Broadcast:        isBroadcast,
 								ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-								ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName},
+								ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
 								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
 								Temperature:      bigquery.NullFloat64{Valid: false},
 								InsertedAt:       time.Now().UTC(),
@@ -351,7 +351,7 @@ func main() {
 									DestinationID:    destinationID,
 									Broadcast:        isBroadcast,
 									ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-									ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName},
+									ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
 									DemandPercentage: bigquery.NullFloat64{Valid: false},
 									Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
 									InsertedAt:       time.Now().UTC(),
@@ -379,7 +379,7 @@ func main() {
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
 						zoneName, err := hex.DecodeString(payload[2:])
 						if err == nil {
-							log.Info().Msgf("Retrieved name '%v' for zone %v", zoneName, zoneID)
+							log.Info().Msgf("Retrieved name '%v' for zone %v", string(zoneName), zoneID)
 							zoneNames[zoneID] = string(zoneName)
 						} else {
 							log.Warn().Err(err).Msgf("Retrieving name for zone %v failed", zoneID)
