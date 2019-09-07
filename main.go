@@ -159,7 +159,7 @@ func main() {
 	// send heartbeat
 	go func() {
 		for {
-			time.Sleep(time.Duration(300) * time.Second)
+			time.Sleep(time.Duration(applyJitter(60)) * time.Second)
 			commandQueue <- Command{
 				messageType: "I",
 				commandName: "heartbeat",
