@@ -371,7 +371,11 @@ func main() {
 						zoneID, _ := strconv.ParseInt(payload[0:2], 16, 64)
 						zoneName, err := hex.DecodeString(payload[4:])
 						if err == nil {
-							zoneNameString := strings.TrimSpace(string(zoneName))
+							reg := regexp.MustCompile(`[^a-zA-Z ]+`)
+							zoneNameString := string(zoneName)
+							zoneNameString = reg.ReplaceAllString(zoneNameString, "")
+							zoneNameString = strings.TrimSpace(zoneNameString)
+
 							log.Info().Msgf("Retrieved name '%v' for zone %v", zoneNameString, zoneID)
 							if zoneNameString != "" {
 								zoneNames[zoneID] = zoneNameString
