@@ -361,7 +361,14 @@ func main() {
 							zoneNameString = reg.ReplaceAllString(zoneNameString, "")
 							zoneNameString = strings.TrimSpace(zoneNameString)
 
-							log.Info().Msgf("Retrieved name '%v' for zone %v", zoneNameString, zoneID)
+							log.Info().
+								Str("_msg", rawmsg).
+								Str("source", fmt.Sprintf("%v:%v", sourceType, sourceID)).
+								Str("target", fmt.Sprintf("%v:%v", destinationType, destinationID)).
+								Int("zone", int(zoneID)).
+								Str("zoneName", zoneNameString).
+								Msg(commandType)
+
 							if zoneNameString != "" {
 								zoneNames[zoneID] = zoneNameString
 							}
