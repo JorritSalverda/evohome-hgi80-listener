@@ -120,7 +120,7 @@ func main() {
 
 	// create command buffer
 
-	commandQueue := make(chan Command, 20)
+	commandQueue := make(chan Command, 100)
 
 	log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
 
@@ -144,26 +144,28 @@ func main() {
 	defer f.Close()
 
 	// try to get all zone names
-	for i := 0; i < 12; i++ {
+	go func() {
+		for i := 0; i < 12; i++ {
 
-		commandQueue <- Command{
-			messageType:   "RQ",
-			commandName:   "zone_name",
-			destinationID: *evohomeID,
-			payload: &ZoneNamePayload{
-				zoneID: i,
-			},
-		}
+			commandQueue <- Command{
+				messageType:   "RQ",
+				commandName:   "zone_name",
+				destinationID: *evohomeID,
+				payload: &ZoneNamePayload{
+					zoneID: i,
+				},
+			}
 
-		commandQueue <- Command{
-			messageType:   "RQ",
-			commandName:   "zone_info",
-			destinationID: *evohomeID,
-			payload: &ZoneInfoPayload{
-				zoneID: i,
-			},
+			commandQueue <- Command{
+				messageType:   "RQ",
+				commandName:   "zone_info",
+				destinationID: *evohomeID,
+				payload: &ZoneInfoPayload{
+					zoneID: i,
+				},
+			}
 		}
-	}
+	}()
 
 	// send heartbeat approx every 5 minutes to keep the usb serial port awake
 	go func() {
