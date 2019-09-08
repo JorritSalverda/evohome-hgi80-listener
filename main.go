@@ -402,7 +402,16 @@ func main() {
 								zoneNames[zoneID] = zoneNameString
 							}
 						} else {
-							log.Warn().Err(err).Msgf("Retrieving name for zone %v failed", zoneID)
+							log.Warn().Err(err).Msgf("Retrieving name for zone %v failed, retrying...", zoneID)
+
+							commandQueue <- Command{
+								messageType:   "RQ",
+								commandName:   "zone_name",
+								destinationID: *evohomeID,
+								payload: &ZoneNamePayload{
+									zoneID: int(zoneID),
+								},
+							}
 						}
 
 					} else {
