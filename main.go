@@ -436,14 +436,14 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 	payload := command.payload.GetPayloadHex()
 	payloadLength := len(payload) / 2
 
-	commandString := fmt.Sprintf("%v --- %v %v --:------ %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+	commandString := fmt.Sprintf("%v --- %v %v --:------ %v %03d %v", messageType, source, destination, commandCode, payloadLength, payload)
 	if command.broadcast {
-		commandString = fmt.Sprintf("%v --- %v --:------ %v %v %03d %v\r\n", messageType, source, destination, commandCode, payloadLength, payload)
+		commandString = fmt.Sprintf("%v --- %v --:------ %v %v %03d %v", messageType, source, destination, commandCode, payloadLength, payload)
 	}
 
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
-	_, err := f.Write([]byte(commandString))
+	_, err := f.Write([]byte(commandString + "\r\n"))
 	if err != nil {
 		log.Error().Err(err).Msgf("Sending %v command failed", command.commandName)
 	}
