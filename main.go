@@ -149,7 +149,6 @@ func main() {
 	go func() {
 		for {
 			for i := 0; i < 12; i++ {
-
 				commandQueue <- Command{
 					messageType:   "RQ",
 					commandName:   "zone_name",
@@ -171,10 +170,20 @@ func main() {
 				messageType:   "RQ",
 				commandName:   "heartbeat",
 				destinationID: *evohomeID,
-				payload:       &DefaultPayload{},
 			}
 
 			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
+		}
+	}()
+
+	// reset serial port approx every 30 minutes
+	go func() {
+		for {
+			commandQueue <- Command{
+				commandName: "reset_serial_port",
+			}
+
+			time.Sleep(time.Duration(applyJitter(1800)) * time.Second)
 		}
 	}()
 
@@ -185,7 +194,7 @@ func main() {
 		// check if there's any commands to send
 		select {
 		case command := <-commandQueue:
-			sendCommand(f, command)
+			sendCommand(options, &f, command)
 		default:
 		}
 
@@ -389,7 +398,19 @@ func main() {
 	}
 }
 
-func sendCommand(f io.ReadWriteCloser, command Command) {
+func sendCommand(options serial.OpenOptions, f *io.ReadWriteCloser, command Command) {
+
+	if command.commandName == "reset_serial_port" {
+
+		(*f).Close()
+		fnew, err := serial.Open(options)
+		if err != nil {
+			log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
+		}
+		f = &fnew
+
+		return
+	}
 
 	messageType := command.messageType
 	commandCode := reverseCommandsMap[command.commandName]
@@ -414,7 +435,7 @@ func sendCommand(f io.ReadWriteCloser, command Command) {
 
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
-	_, err := f.Write([]byte(commandString))
+	_, err := (*f).Write([]byte(commandString))
 	if err != nil {
 		log.Error().Err(err).Msgf("Sending %v command failed", command.commandName)
 	}
