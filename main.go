@@ -41,7 +41,9 @@ var (
 	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
 
-	zoneNames map[int64]string = map[int64]string{}
+	zoneNames map[int64]string = map[int64]string{
+		252: "Opentherm Bridge",
+	}
 )
 
 func main() {
@@ -176,7 +178,7 @@ func main() {
 		}
 	}()
 
-	// reset serial port approx every 30 minutes
+	// reset serial port approx every 30 minutes, otherwise it falls asleep
 	go func() {
 		for {
 			time.Sleep(time.Duration(applyJitter(1800)) * time.Second)
@@ -306,26 +308,28 @@ func main() {
 							Float64("demand", demandPercentage).
 							Msg(commandType)
 
-						measurements := []BigQueryMeasurement{
-							BigQueryMeasurement{
-								MessageType:      messageType,
-								CommandType:      commandType,
-								SourceType:       sourceType,
-								SourceID:         sourceID,
-								DestinationType:  destinationType,
-								DestinationID:    destinationID,
-								Broadcast:        isBroadcast,
-								ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-								ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
-								DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
-								Temperature:      bigquery.NullFloat64{Valid: false},
-								InsertedAt:       time.Now().UTC(),
-							},
-						}
+						if zoneID >= 12 || zoneName != "" {
+							measurements := []BigQueryMeasurement{
+								BigQueryMeasurement{
+									MessageType:      messageType,
+									CommandType:      commandType,
+									SourceType:       sourceType,
+									SourceID:         sourceID,
+									DestinationType:  destinationType,
+									DestinationID:    destinationID,
+									Broadcast:        isBroadcast,
+									ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+									ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
+									DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
+									Temperature:      bigquery.NullFloat64{Valid: false},
+									InsertedAt:       time.Now().UTC(),
+								},
+							}
 
-						err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
-						if err != nil {
-							log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+							err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+							if err != nil {
+								log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+							}
 						}
 
 					} else if commandType == "zone_temperature" && sourceType == "CTL" && isBroadcast && payloadLength%3 == 0 {
@@ -349,26 +353,28 @@ func main() {
 								Float64("temperature", temperatureDegrees).
 								Msg(commandType)
 
-							measurements := []BigQueryMeasurement{
-								BigQueryMeasurement{
-									MessageType:      messageType,
-									CommandType:      commandType,
-									SourceType:       sourceType,
-									SourceID:         sourceID,
-									DestinationType:  destinationType,
-									DestinationID:    destinationID,
-									Broadcast:        isBroadcast,
-									ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-									ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
-									DemandPercentage: bigquery.NullFloat64{Valid: false},
-									Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
-									InsertedAt:       time.Now().UTC(),
-								},
-							}
+							if zoneID >= 12 || zoneName != "" {
+								measurements := []BigQueryMeasurement{
+									BigQueryMeasurement{
+										MessageType:      messageType,
+										CommandType:      commandType,
+										SourceType:       sourceType,
+										SourceID:         sourceID,
+										DestinationType:  destinationType,
+										DestinationID:    destinationID,
+										Broadcast:        isBroadcast,
+										ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+										ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
+										DemandPercentage: bigquery.NullFloat64{Valid: false},
+										Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
+										InsertedAt:       time.Now().UTC(),
+									},
+								}
 
-							err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
-							if err != nil {
-								log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+								err = bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+								if err != nil {
+									log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+								}
 							}
 						}
 
