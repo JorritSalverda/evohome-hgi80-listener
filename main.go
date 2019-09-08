@@ -179,11 +179,11 @@ func main() {
 	// reset serial port approx every 30 minutes
 	go func() {
 		for {
+			time.Sleep(time.Duration(applyJitter(1800)) * time.Second)
+
 			commandQueue <- Command{
 				commandName: "reset_serial_port",
 			}
-
-			time.Sleep(time.Duration(applyJitter(1800)) * time.Second)
 		}
 	}()
 
@@ -194,7 +194,23 @@ func main() {
 		// check if there's any commands to send
 		select {
 		case command := <-commandQueue:
-			sendCommand(options, &f, command)
+
+			if command.commandName == "reset_serial_port" {
+				log.Info().Msg("Resetting serial port...")
+				f.Close()
+
+				time.Sleep(5 * time.Second)
+
+				f, err = serial.Open(options)
+				if err != nil {
+					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
+				}
+				defer f.Close()
+				in = bufio.NewReader(f)
+			} else {
+				sendCommand(f, command)
+			}
+
 		default:
 		}
 
@@ -202,13 +218,11 @@ func main() {
 
 		if err != nil {
 			if err != io.EOF {
-				log.Warn().Err(err).Msg("Error reading from serial port, closing port...")
+				log.Warn().Err(err).Msg("Error reading from serial port, resetting port...")
 				f.Close()
 
-				log.Info().Msg("Sleeping for 5 seconds...")
 				time.Sleep(5 * time.Second)
 
-				log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
 				f, err = serial.Open(options)
 				if err != nil {
 					log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
@@ -398,19 +412,7 @@ func main() {
 	}
 }
 
-func sendCommand(options serial.OpenOptions, f *io.ReadWriteCloser, command Command) {
-
-	if command.commandName == "reset_serial_port" {
-
-		(*f).Close()
-		fnew, err := serial.Open(options)
-		if err != nil {
-			log.Fatal().Err(err).Interface("options", options).Msg("Failed opening serial device")
-		}
-		f = &fnew
-
-		return
-	}
+func sendCommand(f io.ReadWriteCloser, command Command) {
 
 	messageType := command.messageType
 	commandCode := reverseCommandsMap[command.commandName]
@@ -435,7 +437,7 @@ func sendCommand(options serial.OpenOptions, f *io.ReadWriteCloser, command Comm
 
 	log.Info().Str("_msg", commandString).Msgf("> %v", command.commandName)
 
-	_, err := (*f).Write([]byte(commandString))
+	_, err := f.Write([]byte(commandString))
 	if err != nil {
 		log.Error().Err(err).Msgf("Sending %v command failed", command.commandName)
 	}
