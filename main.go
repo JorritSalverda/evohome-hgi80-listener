@@ -42,7 +42,7 @@ var (
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
 
 	zoneNames map[int64]string = map[int64]string{
-		252: "Opentherm Bridge",
+		252: "Opentherm",
 	}
 )
 
