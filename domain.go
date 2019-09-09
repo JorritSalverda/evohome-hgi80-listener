@@ -97,22 +97,6 @@ func (p DefaultPayload) GetPayloadHex() string {
 	return payload
 }
 
-type ZoneNamePayload struct {
-	zoneID int
-}
-
-func (p ZoneNamePayload) GetPayloadHex() string {
-	return fmt.Sprintf("%02X%02X", p.zoneID, 0)
-}
-
-type ZoneInfoPayload struct {
-	zoneID int
-}
-
-func (p ZoneInfoPayload) GetPayloadHex() string {
-	return fmt.Sprintf("%02X", p.zoneID)
-}
-
 type Message struct {
 	rawmsg              string
 	messageType         string

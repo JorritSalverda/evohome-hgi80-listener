@@ -86,8 +86,8 @@ func main() {
 					messageType:   "RQ",
 					commandName:   "zone_name",
 					destinationID: *evohomeID,
-					payload: &ZoneNamePayload{
-						zoneID: i,
+					payload: &DefaultPayload{
+						Values: []int{i, 0},
 					},
 				}
 			}
@@ -152,8 +152,18 @@ func main() {
 		messageType:   "RQ",
 		commandName:   "zone_temperature",
 		destinationID: *evohomeID,
-		payload: &ZoneInfoPayload{
-			zoneID: 0,
+		payload: &DefaultPayload{
+			Values: []int{0},
+		},
+	}
+
+	log.Info().Msg("Queueing zone_heat_demand command for zone 0")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "zone_heat_demand",
+		destinationID: *evohomeID,
+		payload: &DefaultPayload{
+			Values: []int{0},
 		},
 	}
 
@@ -162,8 +172,8 @@ func main() {
 		messageType:   "RQ",
 		commandName:   "zone_info",
 		destinationID: *evohomeID,
-		payload: &ZoneInfoPayload{
-			zoneID: 0,
+		payload: &DefaultPayload{
+			Values: []int{0},
 		},
 	}
 
@@ -172,8 +182,8 @@ func main() {
 		messageType:   "RQ",
 		commandName:   "setpoint_override",
 		destinationID: *evohomeID,
-		payload: &ZoneInfoPayload{
-			zoneID: 0,
+		payload: &DefaultPayload{
+			Values: []int{0},
 		},
 	}
 
