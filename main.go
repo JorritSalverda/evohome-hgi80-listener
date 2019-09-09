@@ -362,13 +362,15 @@ func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
 	}
 
 	for _, v := range zoneNames {
-		measurement.Zones = append(measurement.Zones, BigQueryZone{
-			ZoneID:      v.ID,
-			ZoneName:    v.Name,
-			Temperature: bigquery.NullFloat64{Float64: v.Temperature, Valid: true},
-			Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: true},
-			HeatDemand:  bigquery.NullFloat64{Float64: v.HeatDemand, Valid: true},
-		})
+		if v.IsActualZone {
+			measurement.Zones = append(measurement.Zones, BigQueryZone{
+				ZoneID:      v.ID,
+				ZoneName:    v.Name,
+				Temperature: bigquery.NullFloat64{Float64: v.Temperature, Valid: true},
+				Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: true},
+				HeatDemand:  bigquery.NullFloat64{Float64: v.HeatDemand, Valid: true},
+			})
+		}
 	}
 
 	err := bigqueryClient.InsertHGIMeasurements(*bigqueryDataset, *bigqueryTable+"_accumulated", []BigQueryHGIMeasurement{measurement})
