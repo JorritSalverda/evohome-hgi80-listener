@@ -467,15 +467,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 			// update zoneinfo if exist
 			zoneInfo, knownZone := zoneNames[zoneID]
 			if knownZone {
-				// check if min and max are already known
-				if zoneInfo.MinTemperature != 0 && zoneInfo.MaxTemperature != 0 {
-					// check if the temp isn't outside of the min and max range
-					if temperatureDegrees > zoneInfo.MinTemperature && temperatureDegrees < zoneInfo.MaxTemperature {
-						zoneInfo.Temperature = temperatureDegrees
-					}
-				} else {
-					zoneInfo.Temperature = temperatureDegrees
-				}
+				zoneInfo.Temperature = temperatureDegrees
 			} else {
 				zoneInfo = ZoneInfo{
 					ID:          zoneID,
