@@ -40,6 +40,8 @@ var (
 	zoneNames map[int64]string = map[int64]string{
 		252: "Opentherm",
 	}
+
+	lastReceivedMessage = time.Now().UTC()
 )
 
 func main() {
@@ -78,6 +80,7 @@ func main() {
 	go func() {
 		for {
 			for i := 0; i < 12; i++ {
+				log.Info().Msgf("Queueing zone_name command for zone %v", i)
 				commandQueue <- Command{
 					messageType:   "RQ",
 					commandName:   "zone_name",
@@ -92,26 +95,18 @@ func main() {
 		}
 	}()
 
-	// // send sysinfo / heartbeat request to controller approx every 5 minutes to keep the usb serial port awake
-	// go func() {
-	// 	for {
-	// 		commandQueue <- Command{
-	// 			messageType:   "RQ",
-	// 			commandName:   "heartbeat",
-	// 			destinationID: *evohomeID,
-	// 		}
-
-	// 		time.Sleep(time.Duration(applyJitter(300)) * time.Second)
-	// 	}
-	// }()
-
-	// reset serial port approx every 30 minutes, otherwise it falls asleep
 	go func() {
 		for {
-			time.Sleep(time.Duration(applyJitter(1800)) * time.Second)
+			time.Sleep(time.Duration(applyJitter(120)) * time.Second)
 
-			commandQueue <- Command{
-				commandName: "reset_serial_port",
+			if time.Since(lastReceivedMessage).Minutes() > 2 {
+				// reset serial port
+
+				log.Info().Msg("Received last message more than 2 minutes ago, resetting serial port...")
+
+				closeSerialPort(f)
+				f, in = openSerialPort()
+				defer closeSerialPort(f)
 			}
 		}
 	}()
@@ -121,17 +116,7 @@ func main() {
 		// check if there's any commands to send
 		select {
 		case command := <-commandQueue:
-
-			if command.commandName == "reset_serial_port" {
-				log.Info().Msg("Resetting serial port...")
-
-				closeSerialPort(f)
-				f, in = openSerialPort()
-				defer closeSerialPort(f)
-			} else {
-				messageProcessor.SendCommand(f, command)
-			}
-
+			messageProcessor.SendCommand(f, command)
 		default:
 		}
 
@@ -157,6 +142,8 @@ func main() {
 				!strings.Contains(rawmsg, "_BAD") &&
 				!strings.Contains(rawmsg, "BAD") &&
 				!strings.Contains(rawmsg, "ERR") {
+
+				lastReceivedMessage = time.Now().UTC()
 
 				isValidMessage, err := messageProcessor.IsValidMessage(rawmsg)
 				if err != nil {
