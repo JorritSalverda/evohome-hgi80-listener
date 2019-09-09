@@ -116,6 +116,67 @@ func main() {
 		}
 	}(waitGroup)
 
+	// test various commands to see their response
+	log.Info().Msg("Queueing heartbeat / sysinfo command")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "heartbeat", // sysinfo
+		destinationID: *evohomeID,
+		payload: &DefaultPayload{
+			Values: []int{0},
+		},
+	}
+
+	log.Info().Msg("Queueing controller_mode command")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "controller_mode",
+		destinationID: *evohomeID,
+		payload: &DefaultPayload{
+			Values: []int{255},
+		},
+	}
+
+	log.Info().Msg("Queueing device_info command")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "device_info",
+		destinationID: *evohomeID,
+		payload: &DefaultPayload{
+			Values: []int{0, 0, 0},
+		},
+	}
+
+	log.Info().Msg("Queueing zone_temperature command for zone 0")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "zone_temperature",
+		destinationID: *evohomeID,
+		payload: &ZoneInfoPayload{
+			zoneID: 0,
+		},
+	}
+
+	log.Info().Msg("Queueing zone_info command for zone 0")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "zone_info",
+		destinationID: *evohomeID,
+		payload: &ZoneInfoPayload{
+			zoneID: 0,
+		},
+	}
+
+	log.Info().Msg("Queueing setpoint_override command for zone 0")
+	commandQueue <- Command{
+		messageType:   "RQ",
+		commandName:   "setpoint_override",
+		destinationID: *evohomeID,
+		payload: &ZoneInfoPayload{
+			zoneID: 0,
+		},
+	}
+
 	for {
 		// wait for serial port reset to finish before continuing
 		waitGroup.Wait()

@@ -79,10 +79,22 @@ type Payload interface {
 }
 
 type DefaultPayload struct {
+	Values []int
 }
 
 func (p DefaultPayload) GetPayloadHex() string {
-	return "00"
+
+	// make sure there's at least one value
+	if len(p.Values) == 0 {
+		p.Values = []int{0}
+	}
+
+	payload := ""
+	for _, v := range p.Values {
+		payload += fmt.Sprintf("%02X", v)
+	}
+
+	return payload
 }
 
 type ZoneNamePayload struct {
