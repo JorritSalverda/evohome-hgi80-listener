@@ -122,7 +122,6 @@ type ZoneInfo struct {
 	Temperature    float64
 	Setpoint       float64
 	HeatDemand     float64
-	LastUpdated    time.Time
 }
 
 func (z ZoneInfo) IsActualZone() bool {

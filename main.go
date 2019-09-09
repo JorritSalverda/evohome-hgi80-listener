@@ -374,7 +374,6 @@ func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
 
 	err := bigqueryClient.InsertHGIMeasurements(*bigqueryDataset, *bigqueryTable+"_accumulated", []BigQueryHGIMeasurement{measurement})
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed inserting accumulated measurements into bigquery table")
+		log.Error().Err(err).Msg("Failed inserting accumulated measurements into bigquery table")
 	}
-
 }

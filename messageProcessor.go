@@ -493,6 +493,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 						ZoneName:         bigquery.NullString{StringVal: zoneInfo.Name, Valid: knownZone && zoneInfo.Name != ""},
 						DemandPercentage: bigquery.NullFloat64{Valid: false},
 						Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
+						Setpoint:         bigquery.NullFloat64{Valid: false},
 						InsertedAt:       time.Now().UTC(),
 					},
 				}
@@ -575,6 +576,7 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 					ZoneName:         bigquery.NullString{StringVal: zoneInfo.Name, Valid: knownZone && zoneInfo.Name != ""},
 					DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},
 					Temperature:      bigquery.NullFloat64{Valid: false},
+					Setpoint:         bigquery.NullFloat64{Valid: false},
 					InsertedAt:       time.Now().UTC(),
 				},
 			}
