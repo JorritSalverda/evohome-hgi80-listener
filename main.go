@@ -366,7 +366,7 @@ func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
 				ZoneID:      v.ID,
 				ZoneName:    v.Name,
 				Temperature: bigquery.NullFloat64{Float64: v.Temperature, Valid: true},
-				Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: true},
+				Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: v.Setpoint > v.MinTemperature && v.Setpoint < v.MaxTemperature},
 				HeatDemand:  bigquery.NullFloat64{Float64: v.HeatDemand, Valid: true},
 			})
 		}

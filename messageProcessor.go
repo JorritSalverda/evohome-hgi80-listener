@@ -523,31 +523,6 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
 				Interface("zoneInfo", zoneInfo).
 				Msg(message.commandType)
-
-			if zoneID >= 12 || zoneInfo.Name != "" {
-				measurements := []BigQueryMeasurement{
-					BigQueryMeasurement{
-						MessageType:      message.messageType,
-						CommandType:      message.commandType,
-						SourceType:       message.sourceType,
-						SourceID:         message.sourceID,
-						DestinationType:  message.destinationType,
-						DestinationID:    message.destinationID,
-						Broadcast:        message.isBroadcast,
-						ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-						ZoneName:         bigquery.NullString{StringVal: zoneInfo.Name, Valid: knownZone && zoneInfo.Name != ""},
-						DemandPercentage: bigquery.NullFloat64{Valid: false},
-						Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
-						Setpoint:         bigquery.NullFloat64{Valid: false},
-						InsertedAt:       time.Now().UTC(),
-					},
-				}
-
-				err := mp.bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
-				if err != nil {
-					log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
-				}
-			}
 		}
 
 		return
