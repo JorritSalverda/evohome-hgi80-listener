@@ -251,8 +251,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 
 			// payload has blocks of 6 bytes, with zone id in byte 1 flags in byte 2, min in byte 3 and max in byte 4
 			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
-			zoneInfo, _ := zoneNames[zoneID]
-			flags, _ := strconv.ParseInt(message.payload[i+2:i+4], 16, 64)
+			//flags, _ := strconv.ParseInt(message.payload[i+2:i+4], 16, 64)
 			minTemperature, _ := strconv.ParseInt(message.payload[i+4:i+8], 16, 64)
 			minTemperatureDegrees := float64(minTemperature) / 100
 			maxTemperature, _ := strconv.ParseInt(message.payload[i+8:i+12], 16, 64)
@@ -277,11 +276,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 				Str("_msg", message.rawmsg).
 				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int64("zone", zoneID).
-				Str("zoneName", zoneInfo.Name).
-				Int("flags", int(flags)).
-				Float64("minTemperature", minTemperatureDegrees).
-				Float64("maxTemperature", maxTemperatureDegrees).
+				Interface("zoneInfo", zoneInfo).
 				Msg(message.commandType)
 		}
 
@@ -382,20 +377,11 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 			// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
 
 			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
-			zoneInfo, knownZone := zoneNames[zoneID]
 			setpoint, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
 			setpointDegrees := float64(setpoint) / 100
 
-			log.Info().
-				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int64("zone", zoneID).
-				Str("zoneName", zoneInfo.Name).
-				Float64("setpoint", setpointDegrees).
-				Msg(message.commandType)
-
 			// update zoneinfo if exist
+			zoneInfo, knownZone := zoneNames[zoneID]
 			if knownZone {
 				zoneInfo.Setpoint = setpointDegrees
 			} else {
@@ -406,6 +392,13 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 				}
 			}
 			zoneNames[zoneID] = zoneInfo
+
+			log.Info().
+				Str("_msg", message.rawmsg).
+				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Interface("zoneInfo", zoneInfo).
+				Msg(message.commandType)
 
 			if zoneID >= 12 || zoneInfo.Name != "" {
 				measurements := []BigQueryMeasurement{
@@ -466,20 +459,11 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 			// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
 
 			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
-			zoneInfo, knownZone := zoneNames[zoneID]
 			temperature, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
 			temperatureDegrees := float64(temperature) / 100
 
-			log.Info().
-				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int64("zone", zoneID).
-				Str("zoneName", zoneInfo.Name).
-				Float64("temperature", temperatureDegrees).
-				Msg(message.commandType)
-
 			// update zoneinfo if exist
+			zoneInfo, knownZone := zoneNames[zoneID]
 			if knownZone {
 				zoneInfo.Temperature = temperatureDegrees
 				zoneNames[zoneID] = zoneInfo
@@ -491,6 +475,13 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				}
 			}
 			zoneNames[zoneID] = zoneInfo
+
+			log.Info().
+				Str("_msg", message.rawmsg).
+				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Interface("zoneInfo", zoneInfo).
+				Msg(message.commandType)
 
 			if zoneID >= 12 || zoneInfo.Name != "" {
 				measurements := []BigQueryMeasurement{
@@ -551,20 +542,11 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 	if message.payloadLength == 2 {
 		// heat demand for zone
 		zoneID, _ := strconv.ParseInt(message.payload[0:2], 16, 64)
-		zoneInfo, knownZone := zoneNames[zoneID]
 		demand, _ := strconv.ParseInt(message.payload[2:4], 16, 64)
 		demandPercentage := float64(demand) / 200 * 100
 
-		log.Info().
-			Str("_msg", message.rawmsg).
-			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-			Int64("zone", zoneID).
-			Str("zoneName", zoneInfo.Name).
-			Float64("demand", demandPercentage).
-			Msg(message.commandType)
-
 		// update zoneinfo if exist
+		zoneInfo, knownZone := zoneNames[zoneID]
 		if knownZone {
 			zoneInfo.HeatDemand = demandPercentage
 			zoneNames[zoneID] = zoneInfo
@@ -576,6 +558,13 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 			}
 		}
 		zoneNames[zoneID] = zoneInfo
+
+		log.Info().
+			Str("_msg", message.rawmsg).
+			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+			Interface("zoneInfo", zoneInfo).
+			Msg(message.commandType)
 
 		if zoneID >= 12 || zoneInfo.Name != "" {
 			measurements := []BigQueryMeasurement{
