@@ -63,6 +63,7 @@ type BigQueryMeasurement struct {
 	ZoneName         bigquery.NullString  `bigquery:"zone_name"`
 	DemandPercentage bigquery.NullFloat64 `bigquery:"demand_percentage"`
 	Temperature      bigquery.NullFloat64 `bigquery:"temperature"`
+	Setpoint         bigquery.NullFloat64 `bigquery:"setpoint"`
 	InsertedAt       time.Time            `bigquery:"inserted_at"`
 }
 

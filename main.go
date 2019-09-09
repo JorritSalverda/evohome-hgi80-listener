@@ -77,7 +77,7 @@ func main() {
 	f, in := openSerialPort()
 	defer closeSerialPort(f)
 
-	// request zone names from controller approx once an hour to be able to store measurements with zone name and pick up changes / new zones
+	// request zone names from controller approx once every 15 minutes to be able to store measurements with zone name and pick up changes / new zones
 	go func() {
 		for {
 			for i := 0; i < 12; i++ {
@@ -105,6 +105,23 @@ func main() {
 			}
 
 			time.Sleep(time.Duration(applyJitter(900)) * time.Second)
+		}
+	}()
+
+	// request zone heat demand approx every 5 minutes (temperature and setpoint are already broadcasted by the controller regularly)
+	go func() {
+		for {
+			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
+
+			log.Info().Msg("Queueing zone_heat_demand command for all zones")
+			commandQueue <- Command{
+				messageType:   "RQ",
+				commandName:   "zone_heat_demand",
+				destinationID: *evohomeID,
+				payload: &DefaultPayload{
+					Values: []int{0},
+				},
+			}
 		}
 	}()
 
@@ -156,36 +173,6 @@ func main() {
 		destinationID: *evohomeID,
 		payload: &DefaultPayload{
 			Values: []int{0, 0, 0},
-		},
-	}
-
-	log.Info().Msg("Queueing zone_temperature command for zone 0")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "zone_temperature",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0},
-		},
-	}
-
-	log.Info().Msg("Queueing zone_heat_demand command for zone 0")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "zone_heat_demand",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0},
-		},
-	}
-
-	log.Info().Msg("Queueing setpoint_override command for zone 0")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "setpoint_override",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0},
 		},
 	}
 

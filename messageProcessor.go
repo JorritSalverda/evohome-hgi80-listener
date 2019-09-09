@@ -234,6 +234,7 @@ func (mp *messageProcessorImpl) ProcessRelayHeatDemandMessage(message Message) {
 
 func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+		// > RQ --- 18:730 01:160371 --:------ 000A 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 000A 006 001001F40DAC (single zone)
 
 		for i := 0; i < int(2*message.payloadLength); i += 12 {
@@ -271,6 +272,7 @@ func (mp *messageProcessorImpl) ProcessOtherCommandMessage(message Message) {
 
 func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
+		// > RQ --- 18:730 01:160371 --:------ 0418 003 000000
 		// 045 RP --- 01:160371 18:010057 --:------ 0418 022 004000B0040000000000AA12B2C77FFFFF7000000001
 
 		addr, _ := strconv.ParseInt(message.payload[4:6], 16, 64)
@@ -300,6 +302,7 @@ func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
 				},
 			}
 		}
+		return
 	}
 	mp.ProcessUnknownMessage(message)
 }
@@ -314,6 +317,7 @@ func (mp *messageProcessorImpl) ProcessDhwSettingsMessage(message Message) {
 
 func (mp *messageProcessorImpl) ProcessHeartbeatMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// > 095 RQ --- 18:010057 01:160371 --:------ 10E0 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 10E0 038 000002FF0163FFFFFFFF140B07E1010807DD45766F20436F6C6F720000000000000000000000
 	}
 	mp.ProcessUnknownMessage(message)
@@ -344,11 +348,63 @@ func (mp *messageProcessorImpl) ProcessSetpointUfhMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
+
+	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+		// 045  I --- 01:160371 --:------ 01:160371 2309 018 00079E0105DC02076C0306A405076C0605DC
+
+		for i := 0; i < int(2*message.payloadLength); i += 6 {
+
+			// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
+
+			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
+			zoneName, knownZoneName := zoneNames[zoneID]
+			setpoint, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
+			setpointDegrees := float64(setpoint) / 100
+
+			log.Info().
+				Str("_msg", message.rawmsg).
+				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Int("zone", int(zoneID)).
+				Str("zoneName", zoneName).
+				Float64("setpoint", setpointDegrees).
+				Msg(message.commandType)
+
+			if zoneID >= 12 || zoneName != "" {
+				measurements := []BigQueryMeasurement{
+					BigQueryMeasurement{
+						MessageType:      message.messageType,
+						CommandType:      message.commandType,
+						SourceType:       message.sourceType,
+						SourceID:         message.sourceID,
+						DestinationType:  message.destinationType,
+						DestinationID:    message.destinationID,
+						Broadcast:        message.isBroadcast,
+						ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
+						ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
+						DemandPercentage: bigquery.NullFloat64{Valid: false},
+						Temperature:      bigquery.NullFloat64{Valid: false},
+						Setpoint:         bigquery.NullFloat64{Float64: setpointDegrees, Valid: true},
+						InsertedAt:       time.Now().UTC(),
+					},
+				}
+
+				err := mp.bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
+				if err != nil {
+					log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
+				}
+			}
+		}
+
+		return
+	}
+
 	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) ProcessSetpointOverrideMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// > RQ --- 18:730 01:160371 --:------ 2349 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 2349 007 00079E00FFFFFF
 	}
 	mp.ProcessUnknownMessage(message)
@@ -356,6 +412,7 @@ func (mp *messageProcessorImpl) ProcessSetpointOverrideMessage(message Message) 
 
 func (mp *messageProcessorImpl) ProcessControllerModeMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// > RQ --- 18:730 01:160371 --:------ 2E04 001 FF
 		// 045 RP --- 01:160371 18:010057 --:------ 2E04 008 00FFFFFFFFFFFF00
 	}
 	mp.ProcessUnknownMessage(message)
@@ -363,6 +420,7 @@ func (mp *messageProcessorImpl) ProcessControllerModeMessage(message Message) {
 
 func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+		// RQ --- 18:730 01:160371 --:------ 30C9 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 30C9 003 000824 (single zone)
 		// 045  I --- 01:160371 --:------ 01:160371 30C9 018 00081A0107BF0207CA03082005086B060884 (all zones)
 
