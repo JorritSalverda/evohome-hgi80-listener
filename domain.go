@@ -100,3 +100,19 @@ type ZoneInfoPayload struct {
 func (p ZoneInfoPayload) GetPayloadHex() string {
 	return fmt.Sprintf("%02X", p.zoneID)
 }
+
+type Message struct {
+	rawmsg              string
+	messageType         string
+	sourceTypeCode      string
+	sourceType          string
+	sourceID            string
+	destinationTypeCode string
+	destinationType     string
+	destinationID       string
+	isBroadcast         bool
+	commandCode         string
+	commandType         string
+	payloadLength       int64
+	payload             string
+}
