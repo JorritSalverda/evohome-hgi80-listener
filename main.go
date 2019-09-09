@@ -133,6 +133,9 @@ func main() {
 			if err != io.EOF {
 				log.Warn().Err(err).Msg("Error reading from serial port, resetting port...")
 
+				// wait for serial port reset to finish before continuing
+				waitGroup.Wait()
+
 				closeSerialPort(f)
 				f, in = openSerialPort()
 				defer closeSerialPort(f)
