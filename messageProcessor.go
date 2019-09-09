@@ -261,6 +261,19 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 			maxTemperature, _ := strconv.ParseInt(message.payload[i+8:i+12], 16, 64)
 			maxTemperatureDegrees := float64(maxTemperature) / 100
 
+			if minTemperature == 32767 || maxTemperature == 32767 {
+				// probably an unused zone, skipping
+				log.Warn().
+					Str("_msg", message.rawmsg).
+					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Str("commandType", message.commandType).
+					Int64("zoneID", zoneID).
+					Msg("Zone min and max indicate this is an unused zone, not processing...")
+
+				continue
+			}
+
 			// update zoneinfo if exist
 			zoneInfo, knownZone := zoneNames[zoneID]
 			if knownZone {
