@@ -195,14 +195,6 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 			zoneNameString = reg.ReplaceAllString(zoneNameString, "")
 			zoneNameString = strings.TrimSpace(zoneNameString)
 
-			log.Info().
-				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int64("zone", zoneID).
-				Str("zoneName", zoneNameString).
-				Msg(message.commandType)
-
 			if zoneNameString != "" {
 				zoneInfo, knownZone := zoneNames[zoneID]
 				if knownZone {
@@ -214,6 +206,19 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 					}
 				}
 				zoneNames[zoneID] = zoneInfo
+
+				log.Info().
+					Str("_msg", message.rawmsg).
+					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Interface("zoneInfo", zoneInfo).
+					Msg(message.commandType)
+			} else {
+				log.Info().
+					Str("_msg", message.rawmsg).
+					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Msg(message.commandType)
 			}
 		} else {
 			log.Warn().Err(err).Msgf("Retrieving name for zone %v failed, retrying...", zoneID)
