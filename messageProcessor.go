@@ -209,9 +209,8 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 					zoneInfo.Name = zoneNameString
 				} else {
 					zoneInfo = ZoneInfo{
-						ID:           zoneID,
-						Name:         zoneNameString,
-						IsActualZone: zoneID < 12,
+						ID:   zoneID,
+						Name: zoneNameString,
 					}
 				}
 				zoneNames[zoneID] = zoneInfo
@@ -267,7 +266,6 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 					ID:             zoneID,
 					MinTemperature: minTemperatureDegrees,
 					MaxTemperature: maxTemperatureDegrees,
-					IsActualZone:   zoneID < 12,
 				}
 			}
 			zoneNames[zoneID] = zoneInfo
@@ -386,9 +384,8 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 				zoneInfo.Setpoint = setpointDegrees
 			} else {
 				zoneInfo = ZoneInfo{
-					ID:           zoneID,
-					Setpoint:     setpointDegrees,
-					IsActualZone: zoneID < 12,
+					ID:       zoneID,
+					Setpoint: setpointDegrees,
 				}
 			}
 			zoneNames[zoneID] = zoneInfo
@@ -469,9 +466,8 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				zoneNames[zoneID] = zoneInfo
 			} else {
 				zoneInfo = ZoneInfo{
-					ID:           zoneID,
-					Temperature:  temperatureDegrees,
-					IsActualZone: zoneID < 12,
+					ID:          zoneID,
+					Temperature: temperatureDegrees,
 				}
 			}
 			zoneNames[zoneID] = zoneInfo
@@ -552,9 +548,8 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 			zoneNames[zoneID] = zoneInfo
 		} else {
 			zoneInfo = ZoneInfo{
-				ID:           zoneID,
-				HeatDemand:   demandPercentage,
-				IsActualZone: zoneID < 12,
+				ID:         zoneID,
+				HeatDemand: demandPercentage,
 			}
 		}
 		zoneNames[zoneID] = zoneInfo

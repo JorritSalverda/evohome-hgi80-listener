@@ -41,8 +41,7 @@ var (
 
 	zoneNames map[int64]ZoneInfo = map[int64]ZoneInfo{
 		252: ZoneInfo{
-			Name:         "Opentherm",
-			IsActualZone: false,
+			Name: "Opentherm",
 		},
 	}
 
@@ -362,7 +361,7 @@ func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
 	}
 
 	for _, v := range zoneNames {
-		if v.IsActualZone {
+		if v.IsActualZone() {
 			measurement.Zones = append(measurement.Zones, BigQueryZone{
 				ZoneID:      v.ID,
 				ZoneName:    v.Name,
