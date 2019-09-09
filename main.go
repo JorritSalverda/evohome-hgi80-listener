@@ -92,18 +92,18 @@ func main() {
 		}
 	}()
 
-	// send sysinfo / heartbeat request to controller approx every 5 minutes to keep the usb serial port awake
-	go func() {
-		for {
-			commandQueue <- Command{
-				messageType:   "RQ",
-				commandName:   "heartbeat",
-				destinationID: *evohomeID,
-			}
+	// // send sysinfo / heartbeat request to controller approx every 5 minutes to keep the usb serial port awake
+	// go func() {
+	// 	for {
+	// 		commandQueue <- Command{
+	// 			messageType:   "RQ",
+	// 			commandName:   "heartbeat",
+	// 			destinationID: *evohomeID,
+	// 		}
 
-			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
-		}
-	}()
+	// 		time.Sleep(time.Duration(applyJitter(300)) * time.Second)
+	// 	}
+	// }()
 
 	// reset serial port approx every 30 minutes, otherwise it falls asleep
 	go func() {

@@ -126,6 +126,7 @@ func (mp *messageProcessorImpl) ProcessMessage(message Message) {
 
 	switch message.commandType {
 	case "external_sensor":
+		mp.ProcessExternalSensorMessage(message)
 	case "zone_name":
 		mp.ProcessZoneNameMessage(message)
 	case "schedule_sync":
