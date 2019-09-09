@@ -38,8 +38,11 @@ var (
 	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
 
-	zoneNames map[int64]string = map[int64]string{
-		252: "Opentherm",
+	zoneNames map[int64]ZoneInfo = map[int64]ZoneInfo{
+		252: ZoneInfo{
+			Name:         "Opentherm",
+			IsActualZone: false,
+		},
 	}
 
 	lastReceivedMessage = time.Now().UTC()

@@ -113,3 +113,15 @@ type Message struct {
 	payloadLength       int64
 	payload             string
 }
+
+type ZoneInfo struct {
+	ID             int
+	Name           string
+	MinTemperature float64
+	MaxTemperature float64
+	Temperature    float64
+	Setpoint       float64
+	HeatDemand     float64
+	IsActualZone   bool
+	LastUpdated    time.Time
+}
