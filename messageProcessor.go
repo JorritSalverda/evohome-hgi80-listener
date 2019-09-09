@@ -383,10 +383,28 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 			setpoint, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
 			setpointDegrees := float64(setpoint) / 100
 
+			if setpointDegrees > 100 {
+				// oops, something must be wrong; stop further processing
+				log.Warn().
+					Str("_msg", message.rawmsg).
+					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Str("commandType", message.commandType).
+					Msgf("Zone setpoint %v is too high, not processing...", setpointDegrees)
+			}
+
 			// update zoneinfo if exist
 			zoneInfo, knownZone := zoneNames[zoneID]
 			if knownZone {
-				zoneInfo.Setpoint = setpointDegrees
+				// check if min and max temp are already known
+				if zoneInfo.MinTemperature != 0 && zoneInfo.MaxTemperature != 0 {
+					// check if the setpoint isn't outside of the min and max temperature range
+					if setpointDegrees > zoneInfo.MinTemperature && setpointDegrees < zoneInfo.MaxTemperature {
+						zoneInfo.Setpoint = setpointDegrees
+					}
+				} else {
+					zoneInfo.Setpoint = setpointDegrees
+				}
 			} else {
 				zoneInfo = ZoneInfo{
 					ID:       zoneID,
@@ -463,6 +481,16 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
 			temperature, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
 			temperatureDegrees := float64(temperature) / 100
+
+			if temperatureDegrees > 100 {
+				// oops, something must be wrong; stop further processing
+				log.Warn().
+					Str("_msg", message.rawmsg).
+					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Str("commandType", message.commandType).
+					Msgf("Zone temperature %v is too high, not processing...", temperatureDegrees)
+			}
 
 			// update zoneinfo if exist
 			zoneInfo, knownZone := zoneNames[zoneID]
