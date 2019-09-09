@@ -41,6 +41,7 @@ var (
 
 	zoneNames map[int64]ZoneInfo = map[int64]ZoneInfo{
 		252: ZoneInfo{
+			ID:   252,
 			Name: "Opentherm",
 		},
 	}
@@ -137,7 +138,6 @@ func main() {
 	}()
 
 	waitGroup := &sync.WaitGroup{}
-
 	go func(waitGroup *sync.WaitGroup) {
 		for {
 			time.Sleep(time.Duration(applyJitter(120)) * time.Second)
