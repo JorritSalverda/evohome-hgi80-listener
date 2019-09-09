@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -95,7 +96,9 @@ func main() {
 		}
 	}()
 
-	go func() {
+	waitGroup := &sync.WaitGroup{}
+
+	go func(waitGroup *sync.WaitGroup) {
 		for {
 			time.Sleep(time.Duration(applyJitter(120)) * time.Second)
 
@@ -104,14 +107,18 @@ func main() {
 
 				log.Info().Msg("Received last message more than 2 minutes ago, resetting serial port...")
 
+				waitGroup.Add(1)
 				closeSerialPort(f)
 				f, in = openSerialPort()
 				defer closeSerialPort(f)
+				waitGroup.Done()
 			}
 		}
-	}()
+	}(waitGroup)
 
 	for {
+		// wait for serial port reset to finish before continuing
+		waitGroup.Wait()
 
 		// check if there's any commands to send
 		select {
