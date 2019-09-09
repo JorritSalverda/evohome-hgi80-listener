@@ -92,7 +92,7 @@ func main() {
 				}
 			}
 
-			time.Sleep(time.Duration(applyJitter(3600)) * time.Second)
+			time.Sleep(time.Duration(applyJitter(900)) * time.Second)
 		}
 	}()
 
