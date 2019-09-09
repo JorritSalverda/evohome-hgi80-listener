@@ -16,6 +16,7 @@ type BigQueryClient interface {
 	UpdateTableSchema(dataset, table string, typeForSchema interface{}) error
 	DeleteTable(dataset, table string) error
 	InsertMeasurements(dataset, table string, measurements []BigQueryMeasurement) error
+	InsertHGIMeasurements(dataset, table string, measurements []BigQueryHGIMeasurement) error
 }
 
 type bigQueryClientImpl struct {
@@ -134,6 +135,18 @@ func (bqc *bigQueryClientImpl) DeleteTable(dataset, table string) error {
 }
 
 func (bqc *bigQueryClientImpl) InsertMeasurements(dataset, table string, measurements []BigQueryMeasurement) error {
+	tbl := bqc.client.Dataset(dataset).Table(table)
+
+	u := tbl.Uploader()
+
+	if err := u.Put(context.Background(), measurements); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bqc *bigQueryClientImpl) InsertHGIMeasurements(dataset, table string, measurements []BigQueryHGIMeasurement) error {
 	tbl := bqc.client.Dataset(dataset).Table(table)
 
 	u := tbl.Uploader()

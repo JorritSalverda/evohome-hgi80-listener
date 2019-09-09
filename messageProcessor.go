@@ -199,7 +199,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 				Str("_msg", message.rawmsg).
 				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int("zone", int(zoneID)).
+				Int64("zone", zoneID).
 				Str("zoneName", zoneNameString).
 				Msg(message.commandType)
 
@@ -209,7 +209,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 					zoneInfo.Name = zoneNameString
 				} else {
 					zoneInfo = ZoneInfo{
-						ID:           int(zoneID),
+						ID:           zoneID,
 						Name:         zoneNameString,
 						IsActualZone: zoneID < 12,
 					}
@@ -265,7 +265,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 				zoneInfo.MaxTemperature = maxTemperatureDegrees
 			} else {
 				zoneInfo = ZoneInfo{
-					ID:             int(zoneID),
+					ID:             zoneID,
 					MinTemperature: minTemperatureDegrees,
 					MaxTemperature: maxTemperatureDegrees,
 					IsActualZone:   zoneID < 12,
@@ -277,7 +277,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 				Str("_msg", message.rawmsg).
 				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int("zone", int(zoneID)).
+				Int64("zone", zoneID).
 				Str("zoneName", zoneInfo.Name).
 				Int("flags", int(flags)).
 				Float64("minTemperature", minTemperatureDegrees).
@@ -390,7 +390,7 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 				Str("_msg", message.rawmsg).
 				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int("zone", int(zoneID)).
+				Int64("zone", zoneID).
 				Str("zoneName", zoneInfo.Name).
 				Float64("setpoint", setpointDegrees).
 				Msg(message.commandType)
@@ -400,7 +400,7 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 				zoneInfo.Setpoint = setpointDegrees
 			} else {
 				zoneInfo = ZoneInfo{
-					ID:           int(zoneID),
+					ID:           zoneID,
 					Setpoint:     setpointDegrees,
 					IsActualZone: zoneID < 12,
 				}
@@ -474,7 +474,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				Str("_msg", message.rawmsg).
 				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-				Int("zone", int(zoneID)).
+				Int64("zone", zoneID).
 				Str("zoneName", zoneInfo.Name).
 				Float64("temperature", temperatureDegrees).
 				Msg(message.commandType)
@@ -485,7 +485,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				zoneNames[zoneID] = zoneInfo
 			} else {
 				zoneInfo = ZoneInfo{
-					ID:           int(zoneID),
+					ID:           zoneID,
 					Temperature:  temperatureDegrees,
 					IsActualZone: zoneID < 12,
 				}
@@ -559,7 +559,7 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 			Str("_msg", message.rawmsg).
 			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
 			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-			Int("zone", int(zoneID)).
+			Int64("zone", zoneID).
 			Str("zoneName", zoneInfo.Name).
 			Float64("demand", demandPercentage).
 			Msg(message.commandType)
@@ -570,7 +570,7 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 			zoneNames[zoneID] = zoneInfo
 		} else {
 			zoneInfo = ZoneInfo{
-				ID:           int(zoneID),
+				ID:           zoneID,
 				HeatDemand:   demandPercentage,
 				IsActualZone: zoneID < 12,
 			}

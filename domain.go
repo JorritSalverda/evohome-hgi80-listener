@@ -115,7 +115,7 @@ type Message struct {
 }
 
 type ZoneInfo struct {
-	ID             int
+	ID             int64
 	Name           string
 	MinTemperature float64
 	MaxTemperature float64
@@ -124,4 +124,17 @@ type ZoneInfo struct {
 	HeatDemand     float64
 	IsActualZone   bool
 	LastUpdated    time.Time
+}
+
+type BigQueryHGIMeasurement struct {
+	Zones      []BigQueryZone `bigquery:"zones"`
+	InsertedAt time.Time      `bigquery:"inserted_at"`
+}
+
+type BigQueryZone struct {
+	ZoneID      int64                `bigquery:"zone_id"`
+	ZoneName    string               `bigquery:"zone_name"`
+	Temperature bigquery.NullFloat64 `bigquery:"temperature"`
+	Setpoint    bigquery.NullFloat64 `bigquery:"setpoint"`
+	HeatDemand  bigquery.NullFloat64 `bigquery:"heat_demand"`
 }

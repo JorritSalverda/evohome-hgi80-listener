@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/alecthomas/kingpin"
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/rs/zerolog"
@@ -125,6 +126,14 @@ func main() {
 					Values: []int{0},
 				},
 			}
+
+		}
+	}()
+
+	go func() {
+		for {
+			time.Sleep(time.Duration(applyJitterWithPercentage(300, 5)) * time.Second)
+			storeZoneInfoInBiqquery(bigqueryClient)
 		}
 	}()
 
@@ -299,6 +308,24 @@ func initBigqueryTable(bigqueryClient BigQueryClient) {
 			log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
 		}
 	}
+
+	accumulatedTableName := *bigqueryTable + "_accumulated"
+
+	log.Debug().Msgf("Checking if table %v.%v.%v exists...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
+	tableExist = bigqueryClient.CheckIfTableExists(*bigqueryDataset, accumulatedTableName)
+	if !tableExist {
+		log.Debug().Msgf("Creating table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
+		err := bigqueryClient.CreateTable(*bigqueryDataset, accumulatedTableName, BigQueryHGIMeasurement{}, "inserted_at", true)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed creating bigquery table")
+		}
+	} else {
+		log.Debug().Msgf("Trying to update table %v.%v.%v schema...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
+		err := bigqueryClient.UpdateTableSchema(*bigqueryDataset, accumulatedTableName, BigQueryHGIMeasurement{})
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
+		}
+	}
 }
 
 func openSerialPort() (io.ReadWriteCloser, *bufio.Reader) {
@@ -327,4 +354,26 @@ func closeSerialPort(f io.ReadWriteCloser) {
 	f.Close()
 
 	time.Sleep(5 * time.Second)
+}
+
+func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
+	measurement := BigQueryHGIMeasurement{
+		InsertedAt: time.Now().UTC(),
+	}
+
+	for _, v := range zoneNames {
+		measurement.Zones = append(measurement.Zones, BigQueryZone{
+			ZoneID:      v.ID,
+			ZoneName:    v.Name,
+			Temperature: bigquery.NullFloat64{Float64: v.Temperature, Valid: true},
+			Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: true},
+			HeatDemand:  bigquery.NullFloat64{Float64: v.HeatDemand, Valid: true},
+		})
+	}
+
+	err := bigqueryClient.InsertHGIMeasurements(*bigqueryDataset, *bigqueryTable+"_accumulated", []BigQueryHGIMeasurement{measurement})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed inserting accumulated measurements into bigquery table")
+	}
+
 }
