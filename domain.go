@@ -47,7 +47,7 @@ var deviceTypeMap = map[string]string{
 	"07": "DHW",  // domestic hot water
 	"10": "OTB",  // opentherm bridge (R8810A1018)
 	"13": "BDR",  // on/off relay (BDR91)
-	"30": "GWAY", // gateway
+	"30": "GWAY", // remote gateway
 	"34": "STAT", // thermostat
 }
 

@@ -183,8 +183,7 @@ func (mp *messageProcessorImpl) ProcessExternalSensorMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
-
-	if message.messageType == "RP" && message.sourceType == "CTL" && message.payloadLength == 22 {
+	if message.sourceType == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
 		// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
 		// first byte has zone id, second byte empty, remaining bytes the zone name
 
@@ -220,9 +219,9 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 			}
 		}
 
-	} else {
-		mp.ProcessUnknownMessage(message)
+		return
 	}
+	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) ProcessScheduleSyncMessage(message Message) {
@@ -234,7 +233,35 @@ func (mp *messageProcessorImpl) ProcessRelayHeatDemandMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
-	// 045 RP --- 01:160371 18:010057 --:------ 000A 006 001001F40DAC
+	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+		// 045 RP --- 01:160371 18:010057 --:------ 000A 006 001001F40DAC (single zone)
+
+		for i := 0; i < int(2*message.payloadLength); i += 12 {
+
+			// payload has blocks of 6 bytes, with zone id in byte 1 flags in byte 2, min in byte 3 and max in byte 4
+			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
+			zoneName, _ := zoneNames[zoneID]
+			flags, _ := strconv.ParseInt(message.payload[i+2:i+4], 16, 64)
+			minTemperature, _ := strconv.ParseInt(message.payload[i+4:i+8], 16, 64)
+			minTemperatureDegrees := float64(minTemperature) / 100
+			maxTemperature, _ := strconv.ParseInt(message.payload[i+8:i+12], 16, 64)
+			maxTemperatureDegrees := float64(maxTemperature) / 100
+
+			log.Info().
+				Str("_msg", message.rawmsg).
+				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Int("zone", int(zoneID)).
+				Str("zoneName", zoneName).
+				Int("flags", int(flags)).
+				Float64("minTemperature", minTemperatureDegrees).
+				Float64("maxTemperature", maxTemperatureDegrees).
+				Msg(message.commandType)
+		}
+
+		return
+	}
+
 	mp.ProcessUnknownMessage(message)
 }
 
@@ -243,7 +270,37 @@ func (mp *messageProcessorImpl) ProcessOtherCommandMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
-	// 045 RP --- 01:160371 18:010057 --:------ 0418 022 004000B0040000000000AA12B2C77FFFFF7000000001
+	if message.sourceType == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
+		// 045 RP --- 01:160371 18:010057 --:------ 0418 022 004000B0040000000000AA12B2C77FFFFF7000000001
+
+		addr, _ := strconv.ParseInt(message.payload[4:6], 16, 64)
+		devNo, _ := strconv.ParseInt(message.payload[10:12], 16, 64)
+		devType, _ := strconv.ParseInt(message.payload[0:2], 16, 64)
+		deviceID, _ := strconv.ParseInt(message.payload[0:2], 38, 44)
+
+		log.Info().
+			Str("_msg", message.rawmsg).
+			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
+			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+			Int("addr", int(addr)).
+			Int("devNo", int(devNo)).
+			Int("devType", int(devType)).
+			Int("deviceID", int(deviceID)).
+			Msg(message.commandType)
+
+		if deviceID != 0 {
+			nextDeviceAddr := int(addr) + 1
+			log.Info().Msgf("Queueing device_info command for device %v", nextDeviceAddr)
+			mp.commandQueue <- Command{
+				messageType:   "RQ",
+				commandName:   "device_info",
+				destinationID: *evohomeID,
+				payload: &DefaultPayload{
+					Values: []int{0, 0, nextDeviceAddr},
+				},
+			}
+		}
+	}
 	mp.ProcessUnknownMessage(message)
 }
 
@@ -256,8 +313,9 @@ func (mp *messageProcessorImpl) ProcessDhwSettingsMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessHeartbeatMessage(message Message) {
-	// 045 RP --- 01:160371 18:010057 --:------ 10E0 038 000002FF0163FFFFFFFF140B07E1010807DD45766F20436F6C6F720000000000000000000000
-
+	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// 045 RP --- 01:160371 18:010057 --:------ 10E0 038 000002FF0163FFFFFFFF140B07E1010807DD45766F20436F6C6F720000000000000000000000
+	}
 	mp.ProcessUnknownMessage(message)
 }
 
@@ -290,67 +348,31 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessSetpointOverrideMessage(message Message) {
-	// 045 RP --- 01:160371 18:010057 --:------ 2349 007 00079E00FFFFFF
+	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// 045 RP --- 01:160371 18:010057 --:------ 2349 007 00079E00FFFFFF
+	}
 	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) ProcessControllerModeMessage(message Message) {
-	// 045 RP --- 01:160371 18:010057 --:------ 2E04 008 00FFFFFFFFFFFF00
+	if message.sourceType == "CTL" && message.messageType == "RP" {
+		// 045 RP --- 01:160371 18:010057 --:------ 2E04 008 00FFFFFFFFFFFF00
+	}
 	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
-	if message.sourceType == "CTL" && message.isBroadcast && message.payloadLength == 3 {
+	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
 		// 045 RP --- 01:160371 18:010057 --:------ 30C9 003 000824 (single zone)
+		// 045  I --- 01:160371 --:------ 01:160371 30C9 018 00081A0107BF0207CA03082005086B060884 (all zones)
 
-		zoneID, _ := strconv.ParseInt(message.payload[0:2], 16, 64)
-		zoneName, knownZoneName := zoneNames[zoneID]
-		temperature, _ := strconv.ParseInt(message.payload[2:6], 16, 64)
-		temperatureDegrees := float64(temperature) / 100
+		for i := 0; i < int(2*message.payloadLength); i += 6 {
 
-		log.Info().
-			Str("_msg", message.rawmsg).
-			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-			Int("zone", int(zoneID)).
-			Str("zoneName", zoneName).
-			Float64("temperature", temperatureDegrees).
-			Msg(message.commandType)
+			// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
 
-		if zoneID >= 12 || zoneName != "" {
-			measurements := []BigQueryMeasurement{
-				BigQueryMeasurement{
-					MessageType:      message.messageType,
-					CommandType:      message.commandType,
-					SourceType:       message.sourceType,
-					SourceID:         message.sourceID,
-					DestinationType:  message.destinationType,
-					DestinationID:    message.destinationID,
-					Broadcast:        message.isBroadcast,
-					ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
-					ZoneName:         bigquery.NullString{StringVal: zoneName, Valid: knownZoneName && zoneName != ""},
-					DemandPercentage: bigquery.NullFloat64{Valid: false},
-					Temperature:      bigquery.NullFloat64{Float64: temperatureDegrees, Valid: true},
-					InsertedAt:       time.Now().UTC(),
-				},
-			}
-
-			err := mp.bigqueryClient.InsertMeasurements(*bigqueryDataset, *bigqueryTable, measurements)
-			if err != nil {
-				log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
-			}
-		}
-
-	} else if message.sourceType == "CTL" && message.isBroadcast && message.payloadLength%3 == 0 {
-		// 045  I --- 01:160371 --:------ 01:160371 30C9 018 00081A0107BF0207CA03082005086B060884
-
-		// payload has blocks of 3 bytes, with zone id in byte 1 and temperature in 'centi' degrees celsius in byte 2 and 3
-		for j := 0; j < int(message.payloadLength/3); j++ {
-			start := 6 * j
-
-			zoneID, _ := strconv.ParseInt(message.payload[start+0:start+2], 16, 64)
+			zoneID, _ := strconv.ParseInt(message.payload[i+0:i+2], 16, 64)
 			zoneName, knownZoneName := zoneNames[zoneID]
-			temperature, _ := strconv.ParseInt(message.payload[start+2:start+6], 16, 64)
+			temperature, _ := strconv.ParseInt(message.payload[i+2:i+6], 16, 64)
 			temperatureDegrees := float64(temperature) / 100
 
 			log.Info().
@@ -386,9 +408,10 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				}
 			}
 		}
-	} else {
-		mp.ProcessUnknownMessage(message)
+
+		return
 	}
+	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) ProcessDateRequestMessage(message Message) {
@@ -456,9 +479,10 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 				log.Fatal().Err(err).Msg("Failed inserting measurements into bigquery table")
 			}
 		}
-	} else {
-		mp.ProcessUnknownMessage(message)
+
+		return
 	}
+	mp.ProcessUnknownMessage(message)
 }
 
 func (mp *messageProcessorImpl) SendCommand(f io.ReadWriteCloser, command Command) {

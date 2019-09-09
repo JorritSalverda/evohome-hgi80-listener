@@ -92,6 +92,18 @@ func main() {
 				}
 			}
 
+			for i := 0; i < 12; i++ {
+				log.Info().Msgf("Queueing zone_info command for zone %v", i)
+				commandQueue <- Command{
+					messageType:   "RQ",
+					commandName:   "zone_info",
+					destinationID: *evohomeID,
+					payload: &DefaultPayload{
+						Values: []int{i},
+					},
+				}
+			}
+
 			time.Sleep(time.Duration(applyJitter(900)) * time.Second)
 		}
 	}()
@@ -137,7 +149,7 @@ func main() {
 		},
 	}
 
-	log.Info().Msg("Queueing device_info command")
+	log.Info().Msg("Queueing device_info command for device 0")
 	commandQueue <- Command{
 		messageType:   "RQ",
 		commandName:   "device_info",
@@ -161,16 +173,6 @@ func main() {
 	commandQueue <- Command{
 		messageType:   "RQ",
 		commandName:   "zone_heat_demand",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0},
-		},
-	}
-
-	log.Info().Msg("Queueing zone_info command for zone 0")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "zone_info",
 		destinationID: *evohomeID,
 		payload: &DefaultPayload{
 			Values: []int{0},
