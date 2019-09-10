@@ -7,11 +7,6 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
-// State contains the state of all devices emitting data catched by the HGI80 device
-type State struct {
-	ZoneInfoMap map[int64]ZoneInfo
-}
-
 var commandsMap = map[string]string{
 	"0002": "external_sensor",
 	"0004": "zone_name",
@@ -113,6 +108,10 @@ type Message struct {
 	commandType         string
 	payloadLength       int64
 	payload             string
+}
+
+type State struct {
+	ZoneInfoMap map[int64]ZoneInfo
 }
 
 type ZoneInfo struct {
