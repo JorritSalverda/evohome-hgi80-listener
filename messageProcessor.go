@@ -196,7 +196,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 			zoneNameString = strings.TrimSpace(zoneNameString)
 
 			if zoneNameString != "" {
-				zoneInfo, knownZone := zoneNames[zoneID]
+				zoneInfo, knownZone := zoneInfoMap[zoneID]
 				if knownZone {
 					zoneInfo.Name = zoneNameString
 				} else {
@@ -205,7 +205,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 						Name: zoneNameString,
 					}
 				}
-				zoneNames[zoneID] = zoneInfo
+				zoneInfoMap[zoneID] = zoneInfo
 
 				log.Info().
 					Str("_msg", message.rawmsg).
@@ -275,7 +275,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 			}
 
 			// update zoneinfo if exist
-			zoneInfo, knownZone := zoneNames[zoneID]
+			zoneInfo, knownZone := zoneInfoMap[zoneID]
 			if knownZone {
 				zoneInfo.MinTemperature = minTemperatureDegrees
 				zoneInfo.MaxTemperature = maxTemperatureDegrees
@@ -286,7 +286,7 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 					MaxTemperature: maxTemperatureDegrees,
 				}
 			}
-			zoneNames[zoneID] = zoneInfo
+			zoneInfoMap[zoneID] = zoneInfo
 
 			log.Info().
 				Str("_msg", message.rawmsg).
@@ -407,7 +407,7 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 			}
 
 			// update zoneinfo if exist
-			zoneInfo, knownZone := zoneNames[zoneID]
+			zoneInfo, knownZone := zoneInfoMap[zoneID]
 			if knownZone {
 				// check if min and max temp are already known
 				if zoneInfo.MinTemperature != 0 && zoneInfo.MaxTemperature != 0 {
@@ -424,7 +424,7 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 					Setpoint: setpointDegrees,
 				}
 			}
-			zoneNames[zoneID] = zoneInfo
+			zoneInfoMap[zoneID] = zoneInfo
 
 			log.Info().
 				Str("_msg", message.rawmsg).
@@ -481,7 +481,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 			}
 
 			// update zoneinfo if exist
-			zoneInfo, knownZone := zoneNames[zoneID]
+			zoneInfo, knownZone := zoneInfoMap[zoneID]
 			if knownZone {
 				zoneInfo.Temperature = temperatureDegrees
 			} else {
@@ -490,7 +490,7 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 					Temperature: temperatureDegrees,
 				}
 			}
-			zoneNames[zoneID] = zoneInfo
+			zoneInfoMap[zoneID] = zoneInfo
 
 			log.Info().
 				Str("_msg", message.rawmsg).
@@ -538,17 +538,17 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 		demandPercentage := float64(demand) / 200 * 100
 
 		// update zoneinfo if exist
-		zoneInfo, knownZone := zoneNames[zoneID]
+		zoneInfo, knownZone := zoneInfoMap[zoneID]
 		if knownZone {
 			zoneInfo.HeatDemand = demandPercentage
-			zoneNames[zoneID] = zoneInfo
+			zoneInfoMap[zoneID] = zoneInfo
 		} else {
 			zoneInfo = ZoneInfo{
 				ID:         zoneID,
 				HeatDemand: demandPercentage,
 			}
 		}
-		zoneNames[zoneID] = zoneInfo
+		zoneInfoMap[zoneID] = zoneInfo
 
 		log.Info().
 			Str("_msg", message.rawmsg).

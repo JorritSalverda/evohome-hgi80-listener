@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,8 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"github.com/alecthomas/kingpin"
+	"github.com/ericchiang/k8s"
+	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -30,21 +33,17 @@ var (
 	goVersion = runtime.Version()
 
 	// application specific config
-	stateFilePath = kingpin.Flag("state-file-path", "Path to file with state.").Default("/configs/state.json").OverrideDefaultFromEnvar("STATE_FILE_PATH").String()
-	hgiDevicePath = kingpin.Flag("hgi-device-path", "Path to usb device connecting HGI80.").Default("/dev/ttyUSB0").OverrideDefaultFromEnvar("HGI_DEVICE_PATH").String()
-	evohomeID     = kingpin.Flag("evohome-id", "ID of the Evohome Touch device").Envar("EVOHOME_ID").Required().String()
-	namespace     = kingpin.Flag("namespace", "Namespace the pod runs in.").Envar("NAMESPACE").Required().String()
+	stateFilePath          = kingpin.Flag("state-file-path", "Path to file with state.").Default("/state/state.json").OverrideDefaultFromEnvar("STATE_FILE_PATH").String()
+	stateFileConfigMapName = kingpin.Flag("state-file-configmap-name", "Name of the configmap with state file.").Default("evohome-hgi80-listener-state").OverrideDefaultFromEnvar("STATE_FILE_CONFIG_MAP_NAME").String()
+	hgiDevicePath          = kingpin.Flag("hgi-device-path", "Path to usb device connecting HGI80.").Default("/dev/ttyUSB0").OverrideDefaultFromEnvar("HGI_DEVICE_PATH").String()
+	evohomeID              = kingpin.Flag("evohome-id", "ID of the Evohome Touch device").Envar("EVOHOME_ID").Required().String()
+	namespace              = kingpin.Flag("namespace", "Namespace the pod runs in.").Envar("NAMESPACE").Required().String()
 
 	bigqueryProjectID = kingpin.Flag("bigquery-project-id", "Google Cloud project id that contains the BigQuery dataset").Envar("BQ_PROJECT_ID").Required().String()
 	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
 
-	zoneNames map[int64]ZoneInfo = map[int64]ZoneInfo{
-		252: ZoneInfo{
-			ID:   252,
-			Name: "Opentherm",
-		},
-	}
+	zoneInfoMap map[int64]ZoneInfo
 
 	lastReceivedMessage = time.Now().UTC()
 )
@@ -69,12 +68,19 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed creating bigquery client")
 	}
 
+	// create kubernetes api client
+	kubeClient, err := k8s.NewInClusterClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating Kubernetes API client")
+	}
+
+	// create command buffer and message processor
+	commandQueue := make(chan Command, 100)
+	messageProcessor := NewMessageProcessor(bigqueryClient, commandQueue)
+
 	initBigqueryTable(bigqueryClient)
 
-	// create command buffer
-	commandQueue := make(chan Command, 100)
-
-	messageProcessor := NewMessageProcessor(bigqueryClient, commandQueue)
+	readStateFromStateFile()
 
 	log.Info().Msgf("Listening to serial usb device at %v for messages from evohome touch device with id %v...", *hgiDevicePath, *evohomeID)
 
@@ -112,28 +118,19 @@ func main() {
 		}
 	}()
 
-	// request zone heat demand approx every 5 minutes (temperature and setpoint are already broadcasted by the controller regularly)
 	go func() {
+		time.Sleep(time.Duration(applyJitterWithPercentage(150, 5)) * time.Second)
 		for {
-			time.Sleep(time.Duration(applyJitter(300)) * time.Second)
-
-			log.Info().Msg("Queueing zone_heat_demand command for all zones")
-			commandQueue <- Command{
-				messageType:   "RQ",
-				commandName:   "zone_heat_demand",
-				destinationID: *evohomeID,
-				payload: &DefaultPayload{
-					Values: []int{0},
-				},
-			}
-
+			storeZoneInfoInBiqquery(bigqueryClient)
+			time.Sleep(time.Duration(applyJitterWithPercentage(300, 5)) * time.Second)
 		}
 	}()
 
 	go func() {
+		time.Sleep(time.Duration(applyJitterWithPercentage(150, 5)) * time.Second)
 		for {
-			time.Sleep(time.Duration(applyJitterWithPercentage(300, 5)) * time.Second)
-			storeZoneInfoInBiqquery(bigqueryClient)
+			writeStateToConfigmap(kubeClient)
+			time.Sleep(time.Duration(applyJitterWithPercentage(60, 5)) * time.Second)
 		}
 	}()
 
@@ -269,6 +266,14 @@ func initLogging() {
 }
 
 func readStateFromStateFile() {
+
+	zoneInfoMap = map[int64]ZoneInfo{
+		252: ZoneInfo{
+			ID:   252,
+			Name: "Opentherm",
+		},
+	}
+
 	// check if state file exists in configmap
 	var state State
 	if _, err := os.Stat(*stateFilePath); !os.IsNotExist(err) {
@@ -287,7 +292,39 @@ func readStateFromStateFile() {
 		if err := json.Unmarshal(data, &state); err != nil {
 			log.Fatal().Err(err).Interface("data", data).Msg("Failed unmarshalling state")
 		}
+
+		zoneInfoMap = state.ZoneInfoMap
 	}
+}
+
+func writeStateToConfigmap(kubeClient *k8s.Client) {
+
+	// retrieve configmap
+	var configMap corev1.ConfigMap
+	err := kubeClient.Get(context.Background(), *namespace, *stateFileConfigMapName, &configMap)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving configmap %v", *stateFileConfigMapName)
+	}
+
+	// marshal state to json
+	state := State{
+		ZoneInfoMap: zoneInfoMap,
+	}
+	stateData, err := json.Marshal(state)
+
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+
+	configMap.Data["state.json"] = string(stateData)
+
+	// update configmap to have state available when the application runs the next time and for other applications
+	err = kubeClient.Update(context.Background(), &configMap)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed updating configmap %v", *stateFileConfigMapName)
+	}
+
+	log.Info().Msgf("Stored state in configmap %v...", *stateFileConfigMapName)
 }
 
 func initBigqueryTable(bigqueryClient BigQueryClient) {
@@ -360,8 +397,8 @@ func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
 		InsertedAt: time.Now().UTC(),
 	}
 
-	for _, v := range zoneNames {
-		if v.IsActualZone() {
+	for _, v := range zoneInfoMap {
+		if v.IsActualZone() && v.Temperature != 0 && v.HeatDemand != 0 {
 			measurement.Zones = append(measurement.Zones, BigQueryZone{
 				ZoneID:      v.ID,
 				ZoneName:    v.Name,

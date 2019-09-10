@@ -75,6 +75,8 @@ spec:
         volumeMounts:
         - name: configs
           mountPath: /configs
+        - name: state
+          mountPath: /state
         - name: secrets
           mountPath: /secrets
         - name: hgi
@@ -84,6 +86,9 @@ spec:
       - name: configs
         configMap:
           name: evohome-hgi80-listener-configs
+      - name: state
+        configMap:
+          name: evohome-hgi80-listener-state
       - name: secrets
         secret:
           defaultMode: 420

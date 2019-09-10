@@ -15,3 +15,11 @@ data:
   bq-project-id: ${BQ_PROJECT_ID}
   bq-dataset: ${BQ_DATASET}
   bq-table: ${BQ_TABLE}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evohome-hgi80-listener-state
+  namespace: evohome-hgi80-listener
+  labels:
+    app: evohome-hgi80-listener
