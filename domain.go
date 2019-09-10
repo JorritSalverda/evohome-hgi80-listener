@@ -128,11 +128,6 @@ func (z ZoneInfo) IsActualZone() bool {
 	return z.ID < 12 && z.Name != ""
 }
 
-type BigQueryHGIMeasurement struct {
-	Zones      []BigQueryZone `bigquery:"zones"`
-	InsertedAt time.Time      `bigquery:"inserted_at"`
-}
-
 type BigQueryZone struct {
 	ZoneID      int64                `bigquery:"zone_id"`
 	ZoneName    string               `bigquery:"zone_name"`

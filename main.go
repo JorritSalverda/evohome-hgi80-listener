@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/alecthomas/kingpin"
 	"github.com/ericchiang/k8s"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
@@ -118,30 +117,21 @@ func main() {
 		}
 	}()
 
+	// write state to configmap approx every minute to be used by the evohome-bigquery-exporter and on restarts of evohome-hgi80-listener
 	go func() {
-		time.Sleep(time.Duration(applyJitterWithPercentage(150, 5)) * time.Second)
 		for {
-			storeZoneInfoInBiqquery(bigqueryClient)
-			time.Sleep(time.Duration(applyJitterWithPercentage(300, 5)) * time.Second)
-		}
-	}()
-
-	go func() {
-		time.Sleep(time.Duration(applyJitterWithPercentage(150, 5)) * time.Second)
-		for {
-			writeStateToConfigmap(kubeClient)
 			time.Sleep(time.Duration(applyJitterWithPercentage(60, 5)) * time.Second)
+			writeStateToConfigmap(kubeClient)
 		}
 	}()
 
+	// safety net for serial port falling asleep
 	waitGroup := &sync.WaitGroup{}
 	go func(waitGroup *sync.WaitGroup) {
 		for {
 			time.Sleep(time.Duration(applyJitter(120)) * time.Second)
 
 			if time.Since(lastReceivedMessage).Minutes() > 2 {
-				// reset serial port
-
 				log.Info().Msg("Received last message more than 2 minutes ago, resetting serial port...")
 
 				waitGroup.Add(1)
@@ -153,37 +143,38 @@ func main() {
 		}
 	}(waitGroup)
 
-	// test various commands to see their response
-	log.Info().Msg("Queueing heartbeat / sysinfo command")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "heartbeat", // sysinfo
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0},
-		},
-	}
+	// // test various commands to see their response
+	// log.Info().Msg("Queueing heartbeat / sysinfo command")
+	// commandQueue <- Command{
+	// 	messageType:   "RQ",
+	// 	commandName:   "heartbeat", // sysinfo
+	// 	destinationID: *evohomeID,
+	// 	payload: &DefaultPayload{
+	// 		Values: []int{0},
+	// 	},
+	// }
 
-	log.Info().Msg("Queueing controller_mode command")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "controller_mode",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{255},
-		},
-	}
+	// log.Info().Msg("Queueing controller_mode command")
+	// commandQueue <- Command{
+	// 	messageType:   "RQ",
+	// 	commandName:   "controller_mode",
+	// 	destinationID: *evohomeID,
+	// 	payload: &DefaultPayload{
+	// 		Values: []int{255},
+	// 	},
+	// }
 
-	log.Info().Msg("Queueing device_info command for device 0")
-	commandQueue <- Command{
-		messageType:   "RQ",
-		commandName:   "device_info",
-		destinationID: *evohomeID,
-		payload: &DefaultPayload{
-			Values: []int{0, 0, 0},
-		},
-	}
+	// log.Info().Msg("Queueing device_info command for device 0")
+	// commandQueue <- Command{
+	// 	messageType:   "RQ",
+	// 	commandName:   "device_info",
+	// 	destinationID: *evohomeID,
+	// 	payload: &DefaultPayload{
+	// 		Values: []int{0, 0, 0},
+	// 	},
+	// }
 
+	// execute commands and read from serial port
 	for {
 		// wait for serial port reset to finish before continuing
 		waitGroup.Wait()
@@ -195,6 +186,7 @@ func main() {
 		default:
 		}
 
+		// read from serial port
 		buf, isPrefix, err := in.ReadLine()
 
 		if err != nil {
@@ -344,24 +336,6 @@ func initBigqueryTable(bigqueryClient BigQueryClient) {
 			log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
 		}
 	}
-
-	accumulatedTableName := *bigqueryTable + "_accumulated"
-
-	log.Debug().Msgf("Checking if table %v.%v.%v exists...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
-	tableExist = bigqueryClient.CheckIfTableExists(*bigqueryDataset, accumulatedTableName)
-	if !tableExist {
-		log.Debug().Msgf("Creating table %v.%v.%v...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
-		err := bigqueryClient.CreateTable(*bigqueryDataset, accumulatedTableName, BigQueryHGIMeasurement{}, "inserted_at", true)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed creating bigquery table")
-		}
-	} else {
-		log.Debug().Msgf("Trying to update table %v.%v.%v schema...", *bigqueryProjectID, *bigqueryDataset, accumulatedTableName)
-		err := bigqueryClient.UpdateTableSchema(*bigqueryDataset, accumulatedTableName, BigQueryHGIMeasurement{})
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed updating bigquery table schema")
-		}
-	}
 }
 
 func openSerialPort() (io.ReadWriteCloser, *bufio.Reader) {
@@ -390,27 +364,4 @@ func closeSerialPort(f io.ReadWriteCloser) {
 	f.Close()
 
 	time.Sleep(5 * time.Second)
-}
-
-func storeZoneInfoInBiqquery(bigqueryClient BigQueryClient) {
-	measurement := BigQueryHGIMeasurement{
-		InsertedAt: time.Now().UTC(),
-	}
-
-	for _, v := range zoneInfoMap {
-		if v.IsActualZone() && v.Temperature != 0 && v.HeatDemand != 0 {
-			measurement.Zones = append(measurement.Zones, BigQueryZone{
-				ZoneID:      v.ID,
-				ZoneName:    v.Name,
-				Temperature: bigquery.NullFloat64{Float64: v.Temperature, Valid: true},
-				Setpoint:    bigquery.NullFloat64{Float64: v.Setpoint, Valid: v.Setpoint > v.MinTemperature && v.Setpoint < v.MaxTemperature},
-				HeatDemand:  bigquery.NullFloat64{Float64: v.HeatDemand, Valid: true},
-			})
-		}
-	}
-
-	err := bigqueryClient.InsertHGIMeasurements(*bigqueryDataset, *bigqueryTable+"_accumulated", []BigQueryHGIMeasurement{measurement})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed inserting accumulated measurements into bigquery table")
-	}
 }
