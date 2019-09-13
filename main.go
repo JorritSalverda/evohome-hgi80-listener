@@ -301,6 +301,7 @@ func writeStateToConfigmap(kubeClient *k8s.Client) {
 	// marshal state to json
 	state := State{
 		ZoneInfoMap: zoneInfoMap,
+		LastUpdated: time.Now().UTC(),
 	}
 	stateData, err := json.Marshal(state)
 

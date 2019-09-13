@@ -112,6 +112,7 @@ type Message struct {
 
 type State struct {
 	ZoneInfoMap map[int64]ZoneInfo
+	LastUpdated time.Time
 }
 
 type ZoneInfo struct {
