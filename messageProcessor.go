@@ -502,11 +502,21 @@ func (mp *messageProcessorImpl) ProcessActuatorStateMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessUnknownMessage(message Message) {
+
+	isNeighbour := false
+	if message.GetSourceTypeName() == "CTL" && message.source != mp.controllerID {
+		isNeighbour = true
+	}
+	if message.GetDestinationTypeName() == "CTL" && message.destination != mp.controllerID {
+		isNeighbour = true
+	}
+
 	log.Info().
 		Str("_msg", message.rawmsg).
 		Str("evohomeID", mp.controllerID).
 		Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
 		Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+		Bool("isNeighbour", isNeighbour).
 		Msg(message.GetCommandName())
 }
 
