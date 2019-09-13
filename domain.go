@@ -118,7 +118,7 @@ func (m Message) GetSourceTypeName() string {
 }
 
 func (m Message) GetSourceID() string {
-	return m.destination[3:]
+	return m.source[3:]
 }
 
 func (m Message) GetDestinationTypeCode() string {
@@ -134,7 +134,7 @@ func (m Message) GetDestinationTypeName() string {
 }
 
 func (m Message) GetDestinationID() string {
-	return m.source[3:]
+	return m.destination[3:]
 }
 
 func (m Message) GetCommandName() string {
