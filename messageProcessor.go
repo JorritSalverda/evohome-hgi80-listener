@@ -46,12 +46,14 @@ type MessageProcessor interface {
 }
 
 type messageProcessorImpl struct {
+	controllerID   string
 	bigqueryClient BigQueryClient
 	commandQueue   chan Command
 }
 
-func NewMessageProcessor(bigqueryClient BigQueryClient, commandQueue chan Command) MessageProcessor {
+func NewMessageProcessor(controllerID string, bigqueryClient BigQueryClient, commandQueue chan Command) MessageProcessor {
 	return &messageProcessorImpl{
+		controllerID:   controllerID,
 		bigqueryClient: bigqueryClient,
 		commandQueue:   commandQueue,
 	}
@@ -70,33 +72,15 @@ func (mp *messageProcessorImpl) DecodeMessage(rawmsg string) (message Message) {
 
 	// source device
 	source := rawmsg[11:20]
-	sourceTypeCode := source[0:2]
-	sourceType := deviceTypeMap[sourceTypeCode]
-	sourceID := source[3:]
-	if sourceType == "" {
-		sourceType = "NA"
-	}
 
 	// destination device
 	destination := rawmsg[21:30]
 	if destination == "--:------" {
 		destination = rawmsg[31:40]
 	}
-	destinationTypeCode := destination[0:2]
-	destinationType := deviceTypeMap[destinationTypeCode]
-	destinationID := destination[3:]
-	if destinationType == "" {
-		destinationType = "NA"
-	}
-
-	isBroadcast := source == destination
 
 	// command
-	commandCode := rawmsg[41:45]
-	commandType := commandsMap[strings.ToUpper(commandCode)]
-	if commandType == "" {
-		commandType = "unknown"
-	}
+	command := rawmsg[41:45]
 
 	// payload
 	payloadLength, err := strconv.ParseInt(rawmsg[46:49], 10, 64)
@@ -106,25 +90,19 @@ func (mp *messageProcessorImpl) DecodeMessage(rawmsg string) (message Message) {
 	payload := rawmsg[50:]
 
 	return Message{
-		rawmsg:              rawmsg,
-		messageType:         messageType,
-		sourceTypeCode:      sourceTypeCode,
-		sourceType:          sourceType,
-		sourceID:            sourceID,
-		destinationTypeCode: destinationTypeCode,
-		destinationType:     destinationType,
-		destinationID:       destinationID,
-		isBroadcast:         isBroadcast,
-		commandCode:         commandCode,
-		commandType:         commandType,
-		payloadLength:       payloadLength,
-		payload:             payload,
+		rawmsg:        rawmsg,
+		messageType:   messageType,
+		source:        source,
+		destination:   destination,
+		command:       command,
+		payloadLength: payloadLength,
+		payload:       payload,
 	}
 }
 
 func (mp *messageProcessorImpl) ProcessMessage(message Message) {
 
-	switch message.commandType {
+	switch message.GetSourceTypeName() {
 	case "external_sensor":
 		mp.ProcessExternalSensorMessage(message)
 	case "zone_name":
@@ -183,7 +161,7 @@ func (mp *messageProcessorImpl) ProcessExternalSensorMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" && message.payloadLength == 22 {
 		// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
 		// first byte has zone id, second byte empty, remaining bytes the zone name
 
@@ -209,16 +187,16 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 
 				log.Info().
 					Str("_msg", message.rawmsg).
-					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 					Interface("zoneInfo", zoneInfo).
-					Msg(message.commandType)
+					Msg(message.GetCommandName())
 			} else {
 				log.Info().
 					Str("_msg", message.rawmsg).
-					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-					Msg(message.commandType)
+					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+					Msg(message.GetCommandName())
 			}
 		} else {
 			log.Warn().Err(err).Msgf("Retrieving name for zone %v failed, retrying...", zoneID)
@@ -247,7 +225,7 @@ func (mp *messageProcessorImpl) ProcessRelayHeatDemandMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType != "RQ" && message.payloadLength%3 == 0 {
 		// > RQ --- 18:730 01:160371 --:------ 000A 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 000A 006 001001F40DAC (single zone)
 
@@ -265,9 +243,9 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 				// probably an unused zone, skipping
 				log.Warn().
 					Str("_msg", message.rawmsg).
-					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-					Str("commandType", message.commandType).
+					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+					Str("commandType", message.GetCommandName()).
 					Int64("zoneID", zoneID).
 					Msg("Zone min and max indicate this is an unused zone, not processing...")
 
@@ -290,10 +268,10 @@ func (mp *messageProcessorImpl) ProcessZoneInfoMessage(message Message) {
 
 			log.Info().
 				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+				Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 				Interface("zoneInfo", zoneInfo).
-				Msg(message.commandType)
+				Msg(message.GetCommandName())
 		}
 
 		return
@@ -307,7 +285,7 @@ func (mp *messageProcessorImpl) ProcessOtherCommandMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" && message.payloadLength == 22 {
 		// > RQ --- 18:730 01:160371 --:------ 0418 003 000000
 		// 045 RP --- 01:160371 18:010057 --:------ 0418 022 004000B0040000000000AA12B2C77FFFFF7000000001
 
@@ -318,13 +296,13 @@ func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
 
 		log.Info().
 			Str("_msg", message.rawmsg).
-			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+			Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+			Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 			Int("addr", int(addr)).
 			Int("devNo", int(devNo)).
 			Int("devType", int(devType)).
 			Int("deviceID", int(deviceID)).
-			Msg(message.commandType)
+			Msg(message.GetCommandName())
 
 		if deviceID != 0 {
 			nextDeviceAddr := int(addr) + 1
@@ -352,7 +330,7 @@ func (mp *messageProcessorImpl) ProcessDhwSettingsMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessHeartbeatMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType == "RP" {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" {
 		// > 095 RQ --- 18:010057 01:160371 --:------ 10E0 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 10E0 038 000002FF0163FFFFFFFF140B07E1010807DD45766F20436F6C6F720000000000000000000000
 	}
@@ -385,7 +363,7 @@ func (mp *messageProcessorImpl) ProcessSetpointUfhMessage(message Message) {
 
 func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 
-	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType != "RQ" && message.payloadLength%3 == 0 {
 		// 045  I --- 01:160371 --:------ 01:160371 2309 018 00079E0105DC02076C0306A405076C0605DC
 
 		for i := 0; i < int(2*message.payloadLength); i += 6 {
@@ -400,9 +378,9 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 				// oops, something must be wrong; stop further processing
 				log.Warn().
 					Str("_msg", message.rawmsg).
-					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-					Str("commandType", message.commandType).
+					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+					Str("commandType", message.GetCommandName()).
 					Msgf("Zone setpoint %v is too high, not processing...", setpointDegrees)
 			}
 
@@ -428,10 +406,10 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 
 			log.Info().
 				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+				Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 				Interface("zoneInfo", zoneInfo).
-				Msg(message.commandType)
+				Msg(message.GetCommandName())
 		}
 
 		return
@@ -441,7 +419,7 @@ func (mp *messageProcessorImpl) ProcessSetpointMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessSetpointOverrideMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType == "RP" {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" {
 		// > RQ --- 18:730 01:160371 --:------ 2349 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 2349 007 00079E00FFFFFF
 	}
@@ -449,7 +427,7 @@ func (mp *messageProcessorImpl) ProcessSetpointOverrideMessage(message Message) 
 }
 
 func (mp *messageProcessorImpl) ProcessControllerModeMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType == "RP" {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" {
 		// > RQ --- 18:730 01:160371 --:------ 2E04 001 FF
 		// 045 RP --- 01:160371 18:010057 --:------ 2E04 008 00FFFFFFFFFFFF00
 	}
@@ -457,7 +435,7 @@ func (mp *messageProcessorImpl) ProcessControllerModeMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
-	if message.sourceType == "CTL" && message.messageType != "RQ" && message.payloadLength%3 == 0 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType != "RQ" && message.payloadLength%3 == 0 {
 		// RQ --- 18:730 01:160371 --:------ 30C9 001 00
 		// 045 RP --- 01:160371 18:010057 --:------ 30C9 003 000824 (single zone)
 		// 045  I --- 01:160371 --:------ 01:160371 30C9 018 00081A0107BF0207CA03082005086B060884 (all zones)
@@ -474,9 +452,9 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 				// oops, something must be wrong; stop further processing
 				log.Warn().
 					Str("_msg", message.rawmsg).
-					Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-					Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-					Str("commandType", message.commandType).
+					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+					Str("commandType", message.GetCommandName()).
 					Msgf("Zone temperature %v is too high, not processing...", temperatureDegrees)
 			}
 
@@ -494,10 +472,10 @@ func (mp *messageProcessorImpl) ProcessZoneTemperatureMessage(message Message) {
 
 			log.Info().
 				Str("_msg", message.rawmsg).
-				Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-				Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+				Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+				Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 				Interface("zoneInfo", zoneInfo).
-				Msg(message.commandType)
+				Msg(message.GetCommandName())
 		}
 
 		return
@@ -524,14 +502,14 @@ func (mp *messageProcessorImpl) ProcessActuatorStateMessage(message Message) {
 func (mp *messageProcessorImpl) ProcessUnknownMessage(message Message) {
 	log.Info().
 		Str("_msg", message.rawmsg).
-		Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-		Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
-		Msg(message.commandType)
+		Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+		Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
+		Msg(message.GetCommandName())
 }
 
 func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 
-	if message.payloadLength == 2 {
+	if ((message.GetDestinationTypeName() == "CTL" && message.destination == mp.controllerID) || message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID) && message.payloadLength == 2 {
 		// heat demand for zone
 		zoneID, _ := strconv.ParseInt(message.payload[0:2], 16, 64)
 		demand, _ := strconv.ParseInt(message.payload[2:4], 16, 64)
@@ -552,21 +530,21 @@ func (mp *messageProcessorImpl) processHeatDemandMessage(message Message) {
 
 		log.Info().
 			Str("_msg", message.rawmsg).
-			Str("source", fmt.Sprintf("%v:%v", message.sourceType, message.sourceID)).
-			Str("target", fmt.Sprintf("%v:%v", message.destinationType, message.destinationID)).
+			Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
+			Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 			Interface("zoneInfo", zoneInfo).
-			Msg(message.commandType)
+			Msg(message.GetCommandName())
 
 		if zoneID >= 12 || zoneInfo.Name != "" {
 			measurements := []BigQueryMeasurement{
 				BigQueryMeasurement{
 					MessageType:      message.messageType,
-					CommandType:      message.commandType,
-					SourceType:       message.sourceType,
-					SourceID:         message.sourceID,
-					DestinationType:  message.destinationType,
-					DestinationID:    message.destinationID,
-					Broadcast:        message.isBroadcast,
+					CommandType:      message.GetCommandName(),
+					SourceType:       message.GetSourceTypeName(),
+					SourceID:         message.GetSourceID(),
+					DestinationType:  message.GetDestinationTypeName(),
+					DestinationID:    message.GetDestinationID(),
+					Broadcast:        message.IsBroadcast(),
 					ZoneID:           bigquery.NullInt64{Int64: zoneID, Valid: true},
 					ZoneName:         bigquery.NullString{StringVal: zoneInfo.Name, Valid: knownZone && zoneInfo.Name != ""},
 					DemandPercentage: bigquery.NullFloat64{Float64: demandPercentage, Valid: true},

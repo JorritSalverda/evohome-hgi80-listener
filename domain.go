@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -95,19 +96,57 @@ func (p DefaultPayload) GetPayloadHex() string {
 }
 
 type Message struct {
-	rawmsg              string
-	messageType         string
-	sourceTypeCode      string
-	sourceType          string
-	sourceID            string
-	destinationTypeCode string
-	destinationType     string
-	destinationID       string
-	isBroadcast         bool
-	commandCode         string
-	commandType         string
-	payloadLength       int64
-	payload             string
+	rawmsg        string
+	messageType   string
+	source        string
+	destination   string
+	command       string
+	payloadLength int64
+	payload       string
+}
+
+func (m Message) GetSourceTypeCode() string {
+	return m.source[0:2]
+}
+
+func (m Message) GetSourceTypeName() string {
+	sourceTypeName := deviceTypeMap[m.GetSourceTypeCode()]
+	if sourceTypeName == "" {
+		sourceTypeName = "NA"
+	}
+	return sourceTypeName
+}
+
+func (m Message) GetSourceID() string {
+	return m.destination[3:]
+}
+
+func (m Message) GetDestinationTypeCode() string {
+	return m.destination[0:2]
+}
+
+func (m Message) GetDestinationTypeName() string {
+	destinationTypeName := deviceTypeMap[m.GetDestinationTypeCode()]
+	if destinationTypeName == "" {
+		destinationTypeName = "NA"
+	}
+	return destinationTypeName
+}
+
+func (m Message) GetDestinationID() string {
+	return m.source[3:]
+}
+
+func (m Message) GetCommandName() string {
+	commandName := commandsMap[strings.ToUpper(m.command)]
+	if commandName == "" {
+		commandName = "unknown"
+	}
+	return commandName
+}
+
+func (m Message) IsBroadcast() bool {
+	return m.source == m.destination
 }
 
 type State struct {

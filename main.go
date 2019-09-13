@@ -75,7 +75,7 @@ func main() {
 
 	// create command buffer and message processor
 	commandQueue := make(chan Command, 100)
-	messageProcessor := NewMessageProcessor(bigqueryClient, commandQueue)
+	messageProcessor := NewMessageProcessor(*evohomeID, bigqueryClient, commandQueue)
 
 	initBigqueryTable(bigqueryClient)
 
