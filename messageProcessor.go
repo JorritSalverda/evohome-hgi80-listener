@@ -102,7 +102,7 @@ func (mp *messageProcessorImpl) DecodeMessage(rawmsg string) (message Message) {
 
 func (mp *messageProcessorImpl) ProcessMessage(message Message) {
 
-	switch message.GetSourceTypeName() {
+	switch message.GetCommandName() {
 	case "external_sensor":
 		mp.ProcessExternalSensorMessage(message)
 	case "zone_name":
@@ -161,7 +161,7 @@ func (mp *messageProcessorImpl) ProcessExternalSensorMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
-	if message.GetSourceTypeName() == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
+	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" && message.payloadLength == 22 {
 		// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
 		// first byte has zone id, second byte empty, remaining bytes the zone name
 
