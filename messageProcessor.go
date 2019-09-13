@@ -161,7 +161,7 @@ func (mp *messageProcessorImpl) ProcessExternalSensorMessage(message Message) {
 }
 
 func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
-	if message.GetSourceTypeName() == "CTL" && message.source == mp.controllerID && message.messageType == "RP" && message.payloadLength == 22 {
+	if message.GetSourceTypeName() == "CTL" && message.messageType == "RP" && message.payloadLength == 22 {
 		// 045 RP --- 01:160371 18:010057 --:------ 0004 022 06004C6F676565726B616D6572000000000000000000
 		// first byte has zone id, second byte empty, remaining bytes the zone name
 
@@ -187,6 +187,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 
 				log.Info().
 					Str("_msg", message.rawmsg).
+					Str("evohomeID", mp.controllerID).
 					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
 					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 					Interface("zoneInfo", zoneInfo).
@@ -194,6 +195,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 			} else {
 				log.Info().
 					Str("_msg", message.rawmsg).
+					Str("evohomeID", mp.controllerID).
 					Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
 					Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 					Msg(message.GetCommandName())
@@ -204,7 +206,7 @@ func (mp *messageProcessorImpl) ProcessZoneNameMessage(message Message) {
 			mp.commandQueue <- Command{
 				messageType:   "RQ",
 				commandName:   "zone_name",
-				destinationID: *evohomeID,
+				destinationID: mp.controllerID,
 				payload: &DefaultPayload{
 					Values: []int{int(zoneID), 0},
 				},
@@ -310,7 +312,7 @@ func (mp *messageProcessorImpl) ProcessDeviceInfoMessage(message Message) {
 			mp.commandQueue <- Command{
 				messageType:   "RQ",
 				commandName:   "device_info",
-				destinationID: *evohomeID,
+				destinationID: mp.controllerID,
 				payload: &DefaultPayload{
 					Values: []int{0, 0, nextDeviceAddr},
 				},
@@ -502,6 +504,7 @@ func (mp *messageProcessorImpl) ProcessActuatorStateMessage(message Message) {
 func (mp *messageProcessorImpl) ProcessUnknownMessage(message Message) {
 	log.Info().
 		Str("_msg", message.rawmsg).
+		Str("evohomeID", mp.controllerID).
 		Str("source", fmt.Sprintf("%v:%v", message.GetSourceTypeName(), message.GetSourceID())).
 		Str("target", fmt.Sprintf("%v:%v", message.GetDestinationTypeName(), message.GetDestinationID())).
 		Msg(message.GetCommandName())
