@@ -41,10 +41,11 @@ var deviceTypeMap = map[string]string{
 	"01": "CTL",  // controller (evohome touch)
 	"02": "UFH",  // underfloor heating (HCE80)
 	"04": "TRV",  // thermostatic radiator valve
-	"07": "DHW",  // domestic hot water
+	"07": "DHW",  // domestic hot water and outdoor sensor
 	"10": "OTB",  // opentherm bridge (R8810A1018)
 	"13": "BDR",  // on/off relay (BDR91)
-	"30": "GWAY", // remote gateway
+	"18": "DGW",  // dev gateway
+	"30": "RGW",  // remote gateway
 	"34": "STAT", // thermostat
 }
 
