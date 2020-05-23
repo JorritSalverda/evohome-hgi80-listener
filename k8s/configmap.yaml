@@ -12,6 +12,7 @@ metadata:
     app: evohome-hgi80-listener
 data:
   evohome-id: ${EVOHOME_ID}
+  bq-enable: false
   bq-project-id: ${BQ_PROJECT_ID}
   bq-dataset: ${BQ_DATASET}
   bq-table: ${BQ_TABLE}

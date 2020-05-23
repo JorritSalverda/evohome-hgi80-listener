@@ -38,6 +38,7 @@ var (
 	evohomeID              = kingpin.Flag("evohome-id", "ID of the Evohome Touch device").Envar("EVOHOME_ID").Required().String()
 	namespace              = kingpin.Flag("namespace", "Namespace the pod runs in.").Envar("NAMESPACE").Required().String()
 
+	bigqueryEnable    = kingpin.Flag("bigquery-enable", "Toggle to enable or disable bigquery integration").Default("true").OverrideDefaultFromEnvar("BQ_ENABLE").Bool()
 	bigqueryProjectID = kingpin.Flag("bigquery-project-id", "Google Cloud project id that contains the BigQuery dataset").Envar("BQ_PROJECT_ID").Required().String()
 	bigqueryDataset   = kingpin.Flag("bigquery-dataset", "Name of the BigQuery dataset").Envar("BQ_DATASET").Required().String()
 	bigqueryTable     = kingpin.Flag("bigquery-table", "Name of the BigQuery table").Envar("BQ_TABLE").Required().String()
@@ -62,7 +63,7 @@ func main() {
 		Str("goVersion", goVersion).
 		Msgf("Starting %v version %v...", app, version)
 
-	bigqueryClient, err := NewBigQueryClient(*bigqueryProjectID)
+	bigqueryClient, err := NewBigQueryClient(*bigqueryProjectID, *bigqueryEnable)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating bigquery client")
 	}

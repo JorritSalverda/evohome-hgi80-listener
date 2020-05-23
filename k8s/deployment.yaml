@@ -61,7 +61,12 @@ spec:
             configMapKeyRef:
               key: bq-table
               name: evohome-hgi80-listener-configs
-        - name: GOOGLE_APPLICATION_CREDENTIALS
+        - name: BQ_ENABLE
+          valueFrom:
+            configMapKeyRef:
+              key: bq-enable
+              name: evohome-hgi80-listener-configs
+      - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /secrets/keyfile.json
         resources:
           requests:
