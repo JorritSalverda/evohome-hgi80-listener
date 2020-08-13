@@ -5,8 +5,8 @@ metadata:
   labels:
     {{- include "evohome-hgi80-listener.labels" . | nindent 4 }}
 data:
-  evohome-id: {{ .Values.config.evohomeId | toString }}
-  bq-enable: {{ .Values.config.bqEnable | toString }}
-  bq-project-id: {{ .Values.config.bqProjectID | toString }}
-  bq-dataset: {{ .Values.config.bqDataset | toString }}
-  bq-table: {{ .Values.config.bqTable | toString }}
+  evohome-id: {{ .Values.config.evohomeId | quote }}
+  bq-enable: {{ .Values.config.bqEnable | quote }}
+  bq-project-id: {{ .Values.config.bqProjectID | quote }}
+  bq-dataset: {{ .Values.config.bqDataset | quote }}
+  bq-table: {{ .Values.config.bqTable | quote }}
