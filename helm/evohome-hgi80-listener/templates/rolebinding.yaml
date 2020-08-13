@@ -1,0 +1,16 @@
+{{- if .Values.rbac.enable -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "evohome-hgi80-listener.fullname" . }}
+  labels:
+    {{- include "evohome-hgi80-listener.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "evohome-hgi80-listener.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "evohome-hgi80-listener.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end -}}

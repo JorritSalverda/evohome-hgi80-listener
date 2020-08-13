@@ -8,14 +8,24 @@ version:
     minor: 1
 
 stages:
-  build:
-    image: golang:1.14.2-alpine3.11
-    env:
-      CGO_ENABLED: 0
-      GOOS: linux
-    commands:
-    - go test -test.short ./... 
-    - go build -a -installsuffix cgo -ldflags "-X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
+  build-lint-and-package:
+    parallelStages:
+      build:
+        image: golang:1.15.0-alpine3.12
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+        commands:
+        - go test -test.short ./...
+        - go build -a -installsuffix cgo -ldflags "-X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
+
+      lint-helm-chart:
+        image: extensions/helm:dev
+        action: lint
+
+      package-helm-chart:
+        image: extensions/helm:dev
+        action: package
 
   bake:
     image: extensions/docker:stable
@@ -28,8 +38,6 @@ stages:
 
       COPY ${ESTAFETTE_GIT_NAME} /
       COPY ca-certificates.crt /etc/ssl/certs/
-      
-      ENV EVOHOME_ID=""
 
       ENTRYPOINT ["/${ESTAFETTE_GIT_NAME}"]
     repositories:
@@ -43,3 +51,26 @@ stages:
     action: push
     repositories:
     - jsalverda
+
+  test-helm-chart:
+    services:
+    - name: kubernetes
+      image: bsycorp/kind:latest-1.17
+      readiness:
+        path: /kubernetes-ready
+        port: 10080
+    image: extensions/helm:dev
+    action: test
+    values: |-
+      secret:
+        gcpServiceAccountKeyfile: '{}'
+
+  clone-charts-repo:
+    image: extensions/git-clone:stable
+    repo: helm-charts
+    branch: master
+
+  publish-helm-chart:
+    image: extensions/helm:dev
+    action: publish
+    repoUrl: https://helm.jorritsalverda.com/

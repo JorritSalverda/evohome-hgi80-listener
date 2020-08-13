@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "evohome-hgi80-listener.fullname" . }}
+  labels:
+    {{- include "evohome-hgi80-listener.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "evohome-hgi80-listener.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "evohome-hgi80-listener.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "evohome-hgi80-listener.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: EVOHOME_ID
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "evohome-hgi80-listener.fullname" . }}
+              key: evohome-id
+        - name: BQ_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              key: bq-project-id
+              name: {{ include "evohome-hgi80-listener.fullname" . }}
+        - name: BQ_DATASET
+          valueFrom:
+            configMapKeyRef:
+              key: bq-dataset
+              name: {{ include "evohome-hgi80-listener.fullname" . }}
+        - name: BQ_TABLE
+          valueFrom:
+            configMapKeyRef:
+              key: bq-table
+              name: {{ include "evohome-hgi80-listener.fullname" . }}
+        - name: BQ_ENABLE
+          valueFrom:
+            configMapKeyRef:
+              key: bq-enable
+              name: {{ include "evohome-hgi80-listener.fullname" . }}
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/keyfile.json
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: configs
+          mountPath: /configs
+        - name: state
+          mountPath: /state
+        - name: secrets
+          mountPath: /secrets
+        - name: hgi
+          mountPath: /dev/ttyUSB0
+      terminationGracePeriodSeconds: 300
+      volumes:
+      - name: configs
+        configMap:
+          name: {{ include "evohome-hgi80-listener.fullname" . }}
+      - name: state
+        configMap:
+          name: {{ include "evohome-hgi80-listener.fullname" . }}-state
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: {{ include "evohome-hgi80-listener.fullname" . }}
+      - name: hgi
+        hostPath:
+          path: {{ .Values.listener.usbDevice }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
