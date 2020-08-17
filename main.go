@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
-	stdlog "log"
 	"os"
 	"runtime"
 	"strings"
@@ -17,13 +15,14 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/ericchiang/k8s"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/jacobsa/go-serial/serial"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 var (
 	// set when building the application
+	appgroup  string
 	app       string
 	version   string
 	branch    string
@@ -53,15 +52,8 @@ func main() {
 	// parse command line parameters
 	kingpin.Parse()
 
-	initLogging()
-
-	// log startup message
-	log.Info().
-		Str("branch", branch).
-		Str("revision", revision).
-		Str("buildDate", buildDate).
-		Str("goVersion", goVersion).
-		Msgf("Starting %v version %v...", app, version)
+	// init log format from envvar ESTAFETTE_LOG_FORMAT
+	foundation.InitLoggingFromEnv(foundation.NewApplicationInfo(appgroup, app, version, branch, revision, buildDate))
 
 	bigqueryClient, err := NewBigQueryClient(*bigqueryProjectID, *bigqueryEnable)
 	if err != nil {
@@ -230,32 +222,6 @@ func main() {
 			}
 		}
 	}
-}
-
-func initLogging() {
-	// log as severity for stackdriver logging to recognize the level
-	zerolog.LevelFieldName = "severity"
-
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	output.FormatLevel = func(i interface{}) string {
-		return ""
-	}
-	output.FormatMessage = func(i interface{}) string {
-		return fmt.Sprintf("%s", i)
-	}
-	output.FormatFieldName = func(i interface{}) string {
-		return fmt.Sprintf("| %s: ", i)
-	}
-	output.FormatFieldValue = func(i interface{}) string {
-		return fmt.Sprintf("%s", i)
-	}
-
-	log.Logger = zerolog.New(output).With().Timestamp().Logger()
-
-	// use zerolog for any logs sent via standard log library
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(log.Logger)
-
 }
 
 func readStateFromStateFile() {
