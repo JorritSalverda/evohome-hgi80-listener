@@ -1,6 +1,6 @@
 apiVersion: v2
 name: evohome-hgi80-listener
-description: A Helm chart for Kubernetes
+description: Listens for Evohome communication through the HGI80 device and stores heat demand in a configmap, to be used by jorritsalverda/evohome-bigquery-exporter
 
 # A chart can be either an 'application' or a 'library' chart.
 #
