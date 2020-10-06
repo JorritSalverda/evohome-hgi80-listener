@@ -219,6 +219,8 @@ func main() {
 					message := messageProcessor.DecodeMessage(rawmsg)
 					messageProcessor.ProcessMessage(message)
 				}
+			} else {
+				log.Debug().Msgf("unknown: %v", rawmsg)
 			}
 		}
 	}
